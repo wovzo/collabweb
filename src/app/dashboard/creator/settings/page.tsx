@@ -7,6 +7,7 @@ import { User } from '@supabase/supabase-js'
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [name, setName] = useState('')
+  const [role, setRole] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,8 +17,11 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUser(user)
-        const { data } = await supabase.from('profiles').select('name').eq('id', user.id).single()
-        if (data) setName(data.name || '')
+        const { data } = await supabase.from('profiles').select('name, role').eq('id', user.id).single()
+        if (data) {
+          setName(data.name || '')
+          setRole(data.role || '')
+        }
       }
     }
     loadUser()
@@ -58,6 +62,15 @@ export default function SettingsPage() {
       )}
 
       <form onSubmit={handleUpdate} className="space-y-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Account Role</label>
+          <div className="mt-1">
+            <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 uppercase tracking-wide">
+              {role || 'Loading...'}
+            </span>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700">Email Address</label>
           <input 
