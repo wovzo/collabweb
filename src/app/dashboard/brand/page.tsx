@@ -57,7 +57,7 @@ export default function BrandDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Welcome back, {profileName}!</h1>
           <p className="text-gray-500 mt-1">Here is what's happening with your campaigns today.</p>
         </div>
-        <Link href="/dashboard/brand/campaigns/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2">
+        <Link href="/dashboard/brand/campaigns/new" className="bg-[#FF6A00] text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-[#E55A00] transition flex items-center gap-2 shadow-md shadow-orange-500/20">
           <Plus className="w-5 h-5" />
           New Campaign
         </Link>
@@ -66,7 +66,7 @@ export default function BrandDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-orange-50 text-[#FF6A00] rounded-xl flex items-center justify-center border border-orange-200">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
@@ -100,7 +100,7 @@ export default function BrandDashboard() {
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-gray-900">Recent Campaigns</h2>
-          <Link href="/dashboard/brand/campaigns" className="text-blue-600 text-sm font-medium hover:underline">View All</Link>
+          <Link href="/dashboard/brand/campaigns" className="text-[#FF6A00] text-sm font-medium hover:underline">View All</Link>
         </div>
         <div className="divide-y divide-gray-100">
           {loading ? (

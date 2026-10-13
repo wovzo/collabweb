@@ -36,7 +36,7 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">All Campaigns</h1>
-        <Link href="/dashboard/brand/campaigns/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2">
+        <Link href="/dashboard/brand/campaigns/new" className="bg-[#FF6A00] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#E55A00] transition flex items-center gap-2 shadow-sm">
           <Plus className="w-5 h-5" />
           New Campaign
         </Link>
@@ -75,7 +75,7 @@ export default function CampaignsPage() {
                       {applicantsCount} Applicants
                     </div>
                     {applicantsCount > 0 && (
-                      <button className="text-blue-600 text-sm font-medium hover:underline ml-2">
+                      <button className="text-[#FF6A00] text-sm font-medium hover:underline ml-2">
                         View Applicants
                       </button>
                     )}

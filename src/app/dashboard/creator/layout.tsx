@@ -29,34 +29,33 @@ export default function CreatorDashboardLayout({
     <div className="min-h-screen bg-slate-50 flex font-[family-name:var(--font-geist-sans)]">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex-col hidden md:flex">
-        <div className="p-6 flex items-center gap-2">
-          <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">W</span>
-          </div>
-          <span className="text-xl font-bold text-gray-900">Wovzo Creator</span>
-        </div>
+        <Link href="/dashboard/creator" className="p-6 flex items-center gap-1">
+          <span className="text-2xl font-black text-black tracking-tight">WOV</span>
+          <span className="text-2xl font-black text-[#FF6A00] tracking-tight">ZO</span>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Creator</span>
+        </Link>
         
-        <nav className="flex-1 px-4 space-y-1 mt-4">
-          <Link href="/dashboard/creator" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname === '/dashboard/creator' ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <nav className="flex-1 px-4 space-y-1 mt-2">
+          <Link href="/dashboard/creator" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname === '/dashboard/creator' ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <LayoutDashboard className="w-5 h-5" />
             Dashboard
           </Link>
-          <Link href="/dashboard/creator/explore" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/explore') ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/creator/explore" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/explore') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Search className="w-5 h-5" />
             Find Campaigns
           </Link>
-          <Link href="/dashboard/creator/applications" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/applications') ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/creator/applications" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/applications') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Briefcase className="w-5 h-5" />
             My Applications
           </Link>
-          <Link href="/dashboard/creator/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/creator/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <MessageSquare className="w-5 h-5" />
             Messages
           </Link>
         </nav>
         
         <div className="p-4 border-t border-gray-200">
-          <Link href="/dashboard/creator/settings" className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition ${pathname.includes('/settings') ? 'bg-purple-50 text-purple-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/creator/settings" className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition ${pathname.includes('/settings') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Settings className="w-5 h-5" />
             Settings
           </Link>

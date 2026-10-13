@@ -92,10 +92,10 @@ export default function MessagesPage() {
             <div 
               key={inf.id}
               onClick={() => setSelectedUser(inf)}
-              className={`p-4 cursor-pointer hover:bg-blue-50 transition ${selectedUser?.id === inf.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+              className={`p-4 cursor-pointer hover:bg-orange-50 transition ${selectedUser?.id === inf.id ? 'bg-[#FFF2EB] border-l-4 border-[#FF6A00]' : ''}`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
+                <div className="w-10 h-10 bg-[#FFF2EB] text-[#FF6A00] rounded-full flex items-center justify-center font-bold">
                   {inf.name?.[0]?.toUpperCase() || 'I'}
                 </div>
                 <div>
@@ -116,7 +116,7 @@ export default function MessagesPage() {
           <>
             {/* Chat Header */}
             <div className="p-4 bg-white border-b border-gray-100 flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">
+              <div className="w-10 h-10 bg-[#FFF2EB] text-[#FF6A00] rounded-full flex items-center justify-center font-bold">
                 {selectedUser.name?.[0]?.toUpperCase() || 'I'}
               </div>
               <h2 className="font-bold text-gray-900">{selectedUser.name || 'Unknown'}</h2>
@@ -134,7 +134,7 @@ export default function MessagesPage() {
                   return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                        isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none shadow-sm'
+                        isMe ? 'bg-[#FF6A00] text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none shadow-sm'
                       }`}>
                         {msg.content}
                       </div>
@@ -152,12 +152,12 @@ export default function MessagesPage() {
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
-                  className="flex-1 rounded-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="flex-1 rounded-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-[#FF6A00] focus:ring-1 focus:ring-[#FF6A00]"
                 />
                 <button 
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="bg-blue-600 text-white rounded-full p-2 px-4 hover:bg-blue-700 disabled:opacity-50 transition"
+                  className="bg-[#FF6A00] text-white rounded-full p-2 px-4 hover:bg-[#E55A00] disabled:opacity-50 transition"
                 >
                   Send
                 </button>

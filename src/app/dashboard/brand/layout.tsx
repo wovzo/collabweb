@@ -29,34 +29,33 @@ export default function BrandDashboardLayout({
     <div className="min-h-screen bg-slate-50 flex font-[family-name:var(--font-geist-sans)]">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex-col hidden md:flex">
-        <div className="p-6 flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">W</span>
-          </div>
-          <span className="text-xl font-bold text-gray-900">Wovzo Collab</span>
-        </div>
+        <Link href="/dashboard/brand" className="p-6 flex items-center gap-1">
+          <span className="text-2xl font-black text-black tracking-tight">WOV</span>
+          <span className="text-2xl font-black text-[#FF6A00] tracking-tight">ZO</span>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Brand</span>
+        </Link>
         
-        <nav className="flex-1 px-4 space-y-1 mt-4">
-          <Link href="/dashboard/brand" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname === '/dashboard/brand' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <nav className="flex-1 px-4 space-y-1 mt-2">
+          <Link href="/dashboard/brand" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname === '/dashboard/brand' ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <LayoutDashboard className="w-5 h-5" />
             Dashboard
           </Link>
-          <Link href="/dashboard/brand/campaigns" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/campaigns') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/brand/campaigns" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/campaigns') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Megaphone className="w-5 h-5" />
             My Campaigns
           </Link>
-          <Link href="/dashboard/brand/influencers" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/influencers') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/brand/influencers" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/influencers') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Users className="w-5 h-5" />
             Applications
           </Link>
-          <Link href="/dashboard/brand/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/brand/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <MessageSquare className="w-5 h-5" />
             Messages
           </Link>
         </nav>
         
         <div className="p-4 border-t border-gray-200">
-          <Link href="/dashboard/brand/settings" className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition ${pathname.includes('/settings') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+          <Link href="/dashboard/brand/settings" className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition ${pathname.includes('/settings') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Settings className="w-5 h-5" />
             Settings
           </Link>

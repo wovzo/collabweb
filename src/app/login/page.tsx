@@ -51,28 +51,27 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-[family-name:var(--font-geist-sans)]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-3xl">W</span>
-          </div>
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <Link href="/" className="flex justify-center items-center gap-1 mb-2">
+          <span className="text-4xl font-black text-black tracking-tight">WOV</span>
+          <span className="text-4xl font-black text-[#FF6A00] tracking-tight">ZO</span>
+        </Link>
+        <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
-          <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500 transition">
+          <Link href="/signup" className="font-semibold text-[#FF6A00] hover:text-[#E55A00] transition">
             create a new account
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-blue-900/5 sm:rounded-2xl sm:px-10 border border-gray-100">
+        <div className="bg-white py-8 px-4 shadow-xl shadow-orange-500/5 sm:rounded-2xl sm:px-10 border border-gray-100">
           <form className="space-y-6" onSubmit={handleLogin}>
             
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
                 {error}
               </div>
             )}
@@ -91,7 +90,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition"
+                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
                   placeholder="you@company.com"
                 />
               </div>
@@ -111,7 +110,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition"
+                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
                   placeholder="••••••••"
                 />
               </div>
@@ -123,7 +122,7 @@ export default function Login() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-[#FF6A00] focus:ring-[#FF6A00] border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   Remember me
@@ -131,7 +130,7 @@ export default function Login() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition">
+                <a href="#" className="font-medium text-[#FF6A00] hover:text-[#E55A00] transition">
                   Forgot your password?
                 </a>
               </div>
@@ -140,7 +139,7 @@ export default function Login() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md shadow-orange-500/20 text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] transition"
               >
                 Sign in
                 <ArrowRight className="ml-2 h-4 w-4" />

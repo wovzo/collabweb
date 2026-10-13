@@ -100,7 +100,7 @@ export default function NewCampaign() {
                 value={formData.title}
                 onChange={e => setFormData({...formData, title: e.target.value})}
                 placeholder="e.g. Summer Sneaker Launch 2026" 
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition" 
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#FF6A00] focus:border-[#FF6A00] outline-none transition" 
               />
             </div>
 
@@ -111,7 +111,7 @@ export default function NewCampaign() {
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
                 placeholder="Describe what you are promoting..." 
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#FF6A00] focus:border-[#FF6A00] outline-none transition"
               ></textarea>
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function NewCampaign() {
                 <select 
                   value={formData.niche}
                   onChange={e => setFormData({...formData, niche: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-600 outline-none bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#FF6A00] outline-none bg-white"
                 >
                   <option>Fashion & Lifestyle</option>
                   <option>Tech & Gadgets</option>
@@ -140,7 +140,7 @@ export default function NewCampaign() {
                 <select 
                   value={formData.minFollowers}
                   onChange={e => setFormData({...formData, minFollowers: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-600 outline-none bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#FF6A00] outline-none bg-white"
                 >
                   <option>Any (Nano influencers)</option>
                   <option>10k+ (Micro influencers)</option>
@@ -159,7 +159,7 @@ export default function NewCampaign() {
                       type="checkbox" 
                       checked={deliverables.includes(item)}
                       onChange={() => handleCheckboxChange(item)}
-                      className="rounded text-blue-600 focus:ring-blue-500" 
+                      className="rounded text-[#FF6A00] focus:ring-[#FF6A00]" 
                     />
                     <span className="text-sm text-gray-700">{item}</span>
                   </label>
@@ -181,7 +181,7 @@ export default function NewCampaign() {
                   value={formData.budget}
                   onChange={e => setFormData({...formData, budget: e.target.value})}
                   placeholder="50000" 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#FF6A00] focus:border-[#FF6A00] outline-none transition" 
                 />
               </div>
               <div className="space-y-1">
@@ -190,7 +190,7 @@ export default function NewCampaign() {
                   type="date" 
                   value={formData.deadline}
                   onChange={e => setFormData({...formData, deadline: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#FF6A00] focus:border-[#FF6A00] outline-none transition" 
                 />
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function NewCampaign() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white font-medium hover:bg-blue-700 rounded-lg transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-2.5 bg-[#FF6A00] text-white font-medium hover:bg-[#E55A00] rounded-lg transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
               <Send className="w-4 h-4" /> 
               {loading ? "Publishing..." : "Publish Campaign"}

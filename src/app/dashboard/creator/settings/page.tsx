@@ -96,7 +96,7 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Creator Profile & Settings</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your public profile, social links, and account security</p>
         </div>
-        <span className="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20 uppercase tracking-wider">
+        <span className="inline-flex items-center rounded-full bg-[#FFF2EB] px-3 py-1 text-xs font-semibold text-[#FF6A00] ring-1 ring-inset ring-[#FF6A00]/20 uppercase tracking-wider">
           ✨ {role || 'Creator'}
         </span>
       </div>
@@ -126,7 +126,7 @@ export default function SettingsPage() {
               type="text" 
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
               placeholder="e.g. Asraf Ali"
             />
           </div>
@@ -138,7 +138,7 @@ export default function SettingsPage() {
             rows={2}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
             placeholder="Tell brands what content you create..."
           />
         </div>
@@ -149,7 +149,7 @@ export default function SettingsPage() {
             <select
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border bg-white"
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border bg-white"
             >
               {NICHES.map((n) => (
                 <option key={n} value={n}>{n}</option>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
               type="text" 
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
               placeholder="e.g. Chennai, India"
             />
           </div>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
               type="text" 
               value={instagram}
               onChange={(e) => setInstagram(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
               placeholder="@username"
             />
           </div>
@@ -187,7 +187,7 @@ export default function SettingsPage() {
               type="text" 
               value={youtube}
               onChange={(e) => setYoutube(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
               placeholder="youtube.com/@channel"
             />
           </div>
@@ -200,7 +200,7 @@ export default function SettingsPage() {
               type="tel" 
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
               placeholder="+91 98765 43210"
             />
           </div>
@@ -212,7 +212,7 @@ export default function SettingsPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Leave blank to keep current"
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3.5 py-2.5 border" 
+              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
             />
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function SettingsPage() {
           <button 
             type="submit" 
             disabled={loading}
-            className="flex justify-center py-2.5 px-6 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition"
+            className="flex justify-center py-2.5 px-6 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] disabled:opacity-50 transition"
           >
             {loading ? 'Saving...' : 'Save Profile Changes'}
           </button>

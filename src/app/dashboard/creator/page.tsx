@@ -107,16 +107,14 @@ export default function CreatorDashboard() {
               <div key={campaign.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full uppercase">
+                    <span className="text-xs font-bold text-[#FF6A00] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full uppercase">
                       {campaign.platform}
                     </span>
                     <h3 className="text-lg font-bold text-gray-900 mt-2">{campaign.title}</h3>
                     <p className="text-sm text-gray-500 mt-1">By {campaign.profiles?.name || "Unknown Brand"}</p>
                   </div>
-                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                    <span className="font-bold text-gray-400">
-                      {(campaign.profiles?.name || "B")[0].toUpperCase()}
-                    </span>
+                  <div className="w-10 h-10 bg-black text-[#FF6A00] rounded-full flex items-center justify-center font-bold">
+                    {(campaign.profiles?.name || "B")[0].toUpperCase()}
                   </div>
                 </div>
                 
@@ -138,7 +136,7 @@ export default function CreatorDashboard() {
                     className={`w-full py-2.5 rounded-lg font-medium transition ${
                       hasApplied 
                         ? 'bg-green-50 text-green-700 border border-green-200' 
-                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                        : 'bg-[#FF6A00] text-white hover:bg-[#E55A00] shadow-sm shadow-orange-500/20'
                     } disabled:opacity-70`}
                   >
                     {applying === campaign.id 
