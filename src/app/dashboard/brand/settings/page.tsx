@@ -34,16 +34,21 @@ export default function SettingsPage() {
       if (user) {
         setUser(user)
         const meta = user.user_metadata || {}
+        if (meta.name) setName(meta.name)
         setBio(meta.bio || '')
         setNiche(meta.niche || 'Fashion & Apparel')
         setWebsite(meta.website || '')
         setLocation(meta.location || 'India')
         setPhone(meta.phone || '')
 
-        const { data } = await supabase.from('profiles').select('name, role').eq('id', user.id).single()
-        if (data) {
-          setName(data.name || '')
-          setRole(data.role || '')
+        try {
+          const { data } = await supabase.from('profiles').select('name, role').eq('id', user.id).single()
+          if (data) {
+            if (data.name && data.name !== 'User') setName(data.name)
+            if (data.role) setRole(data.role)
+          }
+        } catch (e) {
+          console.error('Error fetching brand profile:', e)
         }
       }
     }
@@ -57,10 +62,14 @@ export default function SettingsPage() {
     
     try {
       if (name && user) {
-        await supabase.from('profiles').update({ name }).eq('id', user.id)
+        try {
+          await supabase.from('profiles').update({ name }).eq('id', user.id)
+        } catch (e) {
+          console.error('Profiles table update error:', e)
+        }
       }
       
-      const { error: metaError } = await supabase.auth.updateUser({
+      const { data: updatedData, error: metaError } = await supabase.auth.updateUser({
         data: {
           name,
           bio,
@@ -71,6 +80,7 @@ export default function SettingsPage() {
         }
       })
       if (metaError) throw metaError
+      if (updatedData?.user) setUser(updatedData.user)
 
       if (password) {
         const { error: passError } = await supabase.auth.updateUser({ password })
