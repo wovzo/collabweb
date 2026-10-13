@@ -15,10 +15,24 @@ const NICHES = [
   'Education & Business',
 ]
 
+const AVATAR_PRESETS = [
+  { name: 'Avatar 1', url: 'https://api.dicebear.com/7.x/adventurer/png?seed=Felix' },
+  { name: 'Avatar 2', url: 'https://api.dicebear.com/7.x/adventurer/png?seed=Aneka' },
+  { name: 'Avatar 3', url: 'https://api.dicebear.com/7.x/adventurer/png?seed=Milo' },
+  { name: 'Avatar 4', url: 'https://api.dicebear.com/7.x/adventurer/png?seed=Zoe' },
+  { name: 'Bot 1', url: 'https://api.dicebear.com/7.x/bottts/png?seed=Wovzo1' },
+  { name: 'Bot 2', url: 'https://api.dicebear.com/7.x/bottts/png?seed=Wovzo2' },
+  { name: 'Creator Boy', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
+  { name: 'Creator Girl', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150' },
+  { name: 'Fashion Stylist', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' },
+  { name: 'Tech Reviewer', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150' },
+]
+
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const [bio, setBio] = useState('')
   const [niche, setNiche] = useState('Fashion & Lifestyle')
   const [instagram, setInstagram] = useState('')
@@ -36,6 +50,7 @@ export default function SettingsPage() {
         setUser(user)
         const meta = user.user_metadata || {}
         if (meta.name) setName(meta.name)
+        setAvatarUrl(meta.avatar_url || '')
         setBio(meta.bio || '')
         setNiche(meta.niche || 'Fashion & Lifestyle')
         setInstagram(meta.instagram || '')
@@ -74,6 +89,7 @@ export default function SettingsPage() {
       const { data: updatedData, error: metaError } = await supabase.auth.updateUser({
         data: {
           name,
+          avatar_url: avatarUrl,
           bio,
           niche,
           instagram,
@@ -118,6 +134,71 @@ export default function SettingsPage() {
       )}
 
       <form onSubmit={handleUpdate} className="space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        {/* Profile Picture Card */}
+        <div className="p-5 rounded-xl border border-orange-100 bg-[#FFF9F5]">
+          <label className="block text-sm font-semibold text-gray-900 mb-3">Profile Picture</label>
+          <div className="flex flex-col sm:flex-row items-center gap-5">
+            <div className="relative w-20 h-20 rounded-full border-2 border-[#FF6A00] shadow-sm overflow-hidden bg-[#121212] flex items-center justify-center shrink-0">
+              {avatarUrl ? (
+                <img 
+                  src={avatarUrl} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => {
+                    // Fallback to initial
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <span className="text-2xl font-bold text-[#FF6A00]">
+                  {name ? name[0].toUpperCase() : 'U'}
+                </span>
+              )}
+            </div>
+            
+            <div className="flex-1 w-full space-y-3">
+              <div>
+                <input
+                  type="text"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="Paste image URL (https://...)"
+                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] text-sm px-3.5 py-2 border bg-white"
+                />
+              </div>
+
+              {/* Quick Presets */}
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-2">Or choose a preset avatar:</p>
+                <div className="flex flex-wrap gap-2">
+                  {AVATAR_PRESETS.map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAvatarUrl(p.url)}
+                      className={`relative w-8 h-8 rounded-full border-2 overflow-hidden hover:scale-110 transition ${
+                        avatarUrl === p.url ? 'border-[#FF6A00] ring-2 ring-[#FF6A00]/40' : 'border-gray-200'
+                      }`}
+                      title={p.name}
+                    >
+                      <img src={p.url} alt={p.name} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarUrl('')}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium self-center ml-2"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
