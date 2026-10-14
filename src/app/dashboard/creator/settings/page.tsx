@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabase"
 import { User } from '@supabase/supabase-js'
 
@@ -29,6 +29,7 @@ const AVATAR_PRESETS = [
 ]
 
 export default function SettingsPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [user, setUser] = useState<User | null>(null)
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
@@ -42,6 +43,41 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_DIM = 400
+        let width = img.width
+        let height = img.height
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width)
+            width = MAX_DIM
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height)
+            height = MAX_DIM
+          }
+        }
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75)
+        setAvatarUrl(compressedDataUrl)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
 
   useEffect(() => {
     async function loadUser() {
@@ -157,13 +193,34 @@ export default function SettingsPage() {
             </div>
             
             <div className="flex-1 w-full space-y-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-semibold rounded-lg shadow-sm transition cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Upload from Device / Gallery
+                </button>
+                <span className="text-xs text-gray-400">or paste image URL below</span>
+              </div>
+
               <div>
                 <input
                   type="text"
-                  value={avatarUrl}
+                  value={avatarUrl.startsWith('data:image/') ? '[Custom Image Uploaded]' : avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
                   placeholder="Paste image URL (https://...)"
-                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] text-sm px-3.5 py-2 border bg-white"
+                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] text-xs px-3.5 py-2 border bg-white"
                 />
               </div>
 
