@@ -47,9 +47,8 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-[family-name:var(--font-geist-sans)]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link href="/" className="flex justify-center items-center gap-1 mb-2">
-          <span className="text-4xl font-black text-black tracking-tight">WOV</span>
-          <span className="text-4xl font-black text-[#FF6A00] tracking-tight">ZO</span>
+        <Link href="/" className="flex justify-center items-center mb-2">
+          <img src="/logo.png" alt="Wovzo" className="h-10 object-contain" />
         </Link>
         <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
           Create your account

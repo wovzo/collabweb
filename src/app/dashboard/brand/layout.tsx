@@ -29,10 +29,9 @@ export default function BrandDashboardLayout({
     <div className="min-h-screen bg-slate-50 flex font-[family-name:var(--font-geist-sans)]">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex-col hidden md:flex">
-        <Link href="/dashboard/brand" className="p-6 flex items-center gap-1">
-          <span className="text-2xl font-black text-black tracking-tight">WOV</span>
-          <span className="text-2xl font-black text-[#FF6A00] tracking-tight">ZO</span>
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1 px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Brand</span>
+        <Link href="/dashboard/brand" className="p-6 flex items-center gap-2">
+          <img src="/logo.png" alt="Wovzo" className="h-7 object-contain" />
+          <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Brand</span>
         </Link>
         
         <nav className="flex-1 px-4 space-y-1 mt-2">
@@ -70,7 +69,10 @@ export default function BrandDashboardLayout({
       <main className="flex-1 overflow-auto">
         {/* Mobile Header */}
         <header className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <span className="font-bold text-lg">Wovzo Brand</span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Wovzo" className="h-6 object-contain" />
+            <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Brand</span>
+          </div>
           <button className="p-2 bg-gray-100 rounded-md">
             <LayoutDashboard className="w-5 h-5" />
           </button>

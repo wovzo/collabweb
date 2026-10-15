@@ -34,7 +34,10 @@ export default function InfluencersPage() {
 
       if (data && myCampaigns) {
         const myCampaignIds = myCampaigns.map(c => c.id);
-        const filteredApps = data.filter(app => myCampaignIds.includes(app.campaigns?.id));
+        const filteredApps = (data as any[]).filter(app => {
+          const cId = Array.isArray(app.campaigns) ? app.campaigns[0]?.id : app.campaigns?.id;
+          return myCampaignIds.includes(cId);
+        });
         setApplications(filteredApps);
       }
       

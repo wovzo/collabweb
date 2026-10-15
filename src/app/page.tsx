@@ -6,10 +6,9 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 font-[family-name:var(--font-geist-sans)]">
       {/* Navigation */}
       <nav className="w-full bg-white border-b border-gray-100 py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-1">
-          <span className="text-2xl font-black text-black tracking-tight">WOV</span>
-          <span className="text-2xl font-black text-[#FF6A00] tracking-tight">ZO</span>
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-2 px-2 py-0.5 bg-orange-50 rounded-md border border-orange-200 text-[#FF6A00]">Collab</span>
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="Wovzo" className="h-8 object-contain" />
+          <span className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 bg-orange-50 rounded-md border border-orange-200 text-[#FF6A00]">Collab</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
           <Link href="#how-it-works" className="hover:text-[#FF6A00] transition">How it Works</Link>
