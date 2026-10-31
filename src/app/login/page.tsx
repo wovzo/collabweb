@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail, Lock, Megaphone, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Mail, Lock, Megaphone, Sparkles, Users, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
@@ -369,18 +369,28 @@ export default function Login() {
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <button
                   type="button"
+                  onClick={() => router.push("/dashboard/creator")}
+                  className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#FF6A00]" /> Sign in as Creator
+                </button>
+                <button
+                  type="button"
                   onClick={() => router.push("/dashboard/brand")}
                   className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <Megaphone className="w-3.5 h-3.5 text-[#FF6A00]" /> Sign in as Brand
                 </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/creator")}
-                  className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-[#FF6A00] transition"
                 >
-                  <Users className="w-3.5 h-3.5 text-[#FF6A00]" /> Sign in as Creator
-                </button>
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#FF6A00]" />
+                  <span>Master Admin Console</span>
+                </Link>
               </div>
             </div>
           </div>
