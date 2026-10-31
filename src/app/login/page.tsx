@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail, Lock, Megaphone, Users } from "lucide-react";
+import { ArrowRight, Mail, Lock, Megaphone, Sparkles, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
@@ -114,8 +114,8 @@ export default function Login() {
                       : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  <Users className="w-4 h-4" />
-                  <span>Creator / Influencer</span>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Creator</span>
                 </button>
               </div>
             </div>
