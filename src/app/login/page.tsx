@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const router = useRouter();
-  const [role, setRole] = useState<"brand" | "influencer">("brand");
+  const [role, setRole] = useState<"brand" | "influencer">("influencer");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -197,18 +197,6 @@ export default function Login() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => { setRole("brand"); setError(null); }}
-                  className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
-                    role === "brand"
-                      ? "border-[#FF6A00] bg-orange-50 text-[#FF6A00] shadow-sm ring-1 ring-[#FF6A00]"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Megaphone className="w-4 h-4" />
-                  <span>Brand</span>
-                </button>
-                <button
-                  type="button"
                   onClick={() => { setRole("influencer"); setError(null); }}
                   className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
                     role === "influencer"
@@ -218,6 +206,18 @@ export default function Login() {
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Creator</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRole("brand"); setError(null); }}
+                  className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
+                    role === "brand"
+                      ? "border-[#FF6A00] bg-orange-50 text-[#FF6A00] shadow-sm ring-1 ring-[#FF6A00]"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Megaphone className="w-4 h-4" />
+                  <span>Brand</span>
                 </button>
               </div>
             </div>

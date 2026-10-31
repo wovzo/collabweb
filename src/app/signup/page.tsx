@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function Signup() {
   const router = useRouter();
-  const [role, setRole] = useState("brand");
+  const [role, setRole] = useState("influencer");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -131,14 +131,14 @@ export default function Signup() {
               <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
               <div className="grid grid-cols-2 gap-4">
                 <label className="relative cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center gap-3 hover:bg-gray-50 has-[:checked]:border-[#FF6A00] has-[:checked]:bg-orange-50 has-[:checked]:ring-1 has-[:checked]:ring-[#FF6A00] transition">
-                  <input type="radio" name="role" value="brand" checked={role === "brand"} onChange={() => setRole("brand")} className="sr-only" />
-                  <Megaphone className="w-5 h-5 text-gray-600" />
-                  <span className="font-medium text-gray-900">Brand</span>
-                </label>
-                <label className="relative cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center gap-3 hover:bg-gray-50 has-[:checked]:border-[#FF6A00] has-[:checked]:bg-orange-50 has-[:checked]:ring-1 has-[:checked]:ring-[#FF6A00] transition">
                   <input type="radio" name="role" value="influencer" checked={role === "influencer"} onChange={() => setRole("influencer")} className="sr-only" />
                   <Users className="w-5 h-5 text-gray-600" />
                   <span className="font-medium text-gray-900">Creator</span>
+                </label>
+                <label className="relative cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center gap-3 hover:bg-gray-50 has-[:checked]:border-[#FF6A00] has-[:checked]:bg-orange-50 has-[:checked]:ring-1 has-[:checked]:ring-[#FF6A00] transition">
+                  <input type="radio" name="role" value="brand" checked={role === "brand"} onChange={() => setRole("brand")} className="sr-only" />
+                  <Megaphone className="w-5 h-5 text-gray-600" />
+                  <span className="font-medium text-gray-900">Brand</span>
                 </label>
               </div>
             </div>
