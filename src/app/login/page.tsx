@@ -19,16 +19,33 @@ export default function Login() {
     setLoading(true);
     setError(null);
 
+    const cleanEmail = email.toLowerCase().trim();
+    const selectedNormRole = role === "influencer" ? "influencer" : "brand";
+
+    // Check local registry first
+    let localRegisteredRole: string | null = null;
+    try {
+      const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+      if (reg[cleanEmail]?.role) {
+        localRegisteredRole = reg[cleanEmail].role;
+      }
+      if (!localRegisteredRole) {
+        localRegisteredRole = localStorage.getItem(`wovzo_user_role_${cleanEmail}`);
+      }
+    } catch (_) {}
+
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password,
       });
 
       if (authError) throw authError;
 
       if (data.user) {
-        // Ensure profile exists with the selected role
+        // Fetch registered role from Supabase DB profiles first, then user_metadata, then local
+        let registeredRole: string | null = null;
+
         try {
           const { data: profile } = await supabase
             .from("profiles")
@@ -36,22 +53,59 @@ export default function Login() {
             .eq("id", data.user.id)
             .maybeSingle();
 
-          if (!profile) {
-            await supabase.from("profiles").insert({
-              id: data.user.id,
-              name: data.user.user_metadata?.name || (role === "brand" ? "Brand" : "Creator"),
-              role: role,
-            });
+          if (profile?.role) {
+            registeredRole = profile.role;
           }
         } catch (_) {}
 
-        if (role === "influencer") {
+        if (!registeredRole && data.user.user_metadata?.role) {
+          registeredRole = data.user.user_metadata.role;
+        }
+
+        if (!registeredRole && localRegisteredRole) {
+          registeredRole = localRegisteredRole;
+        }
+
+        // Normalize registered role
+        let normRegistered = "brand";
+        if (registeredRole) {
+          const lower = registeredRole.toLowerCase();
+          normRegistered = (lower === "influencer" || lower === "creator") ? "influencer" : "brand";
+        } else {
+          // If completely new user with no role record anywhere, assign selected role
+          normRegistered = selectedNormRole;
+          try {
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              name: data.user.user_metadata?.name || (selectedNormRole === "brand" ? "Brand" : "Creator"),
+              role: selectedNormRole,
+            });
+          } catch (_) {}
+        }
+
+        // STRICT ROLE CHECK: Creator cannot sign in as Brand, Brand cannot sign in as Creator!
+        if (normRegistered !== selectedNormRole) {
+          await supabase.auth.signOut();
+          const targetName = normRegistered === "influencer" ? "Creator" : "Brand";
+          const currentName = selectedNormRole === "influencer" ? "Creator" : "Brand";
+          setError(`Access Denied: This account is registered as a ${targetName}. You selected '${currentName}'. Please click '${targetName}' above to sign in.`);
+          setLoading(false);
+          return;
+        }
+
+        // Save matched role locally
+        try {
+          localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRegistered);
+          const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+          reg[cleanEmail] = { role: normRegistered };
+          localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+        } catch (_) {}
+
+        if (normRegistered === "influencer") {
           router.push("/dashboard/creator");
         } else {
           router.push("/dashboard/brand");
         }
-      } else {
-        router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
       }
     } catch (err: any) {
       console.warn("Login auth error:", err);
@@ -62,15 +116,32 @@ export default function Login() {
         err.name === "TypeError";
 
       if (isNetworkOrFetch) {
-        // Supabase is paused or unreachable. Automatically forward to dashboard in demo mode!
+        // Offline / Supabase paused fallback
+        // Even offline, STRICTLY check local account role
+        if (localRegisteredRole) {
+          const normLocal = (localRegisteredRole.toLowerCase() === "influencer" || localRegisteredRole.toLowerCase() === "creator") ? "influencer" : "brand";
+          if (normLocal !== selectedNormRole) {
+            const targetName = normLocal === "influencer" ? "Creator" : "Brand";
+            const currentName = selectedNormRole === "influencer" ? "Creator" : "Brand";
+            setError(`Access Denied: This account is registered as a ${targetName}. You selected '${currentName}'. Please click '${targetName}' above to sign in.`);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Save for demo
         try {
+          localStorage.setItem(`wovzo_user_role_${cleanEmail}`, selectedNormRole);
+          const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+          reg[cleanEmail] = { role: selectedNormRole };
+          localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
           localStorage.setItem("wovzo_demo_user", JSON.stringify({
-            email: email || "demo@wovzo.com",
-            role: role
+            email: cleanEmail,
+            role: selectedNormRole
           }));
         } catch (_) {}
-        
-        router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
+
+        router.push(selectedNormRole === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
         return;
       }
       setError(err.message || "Failed to log in.");
@@ -114,7 +185,7 @@ export default function Login() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setRole("brand")}
+                  onClick={() => { setRole("brand"); setError(null); }}
                   className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
                     role === "brand"
                       ? "border-[#FF6A00] bg-orange-50 text-[#FF6A00] shadow-sm ring-1 ring-[#FF6A00]"
@@ -126,7 +197,7 @@ export default function Login() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRole("influencer")}
+                  onClick={() => { setRole("influencer"); setError(null); }}
                   className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
                     role === "influencer"
                       ? "border-[#FF6A00] bg-orange-50 text-[#FF6A00] shadow-sm ring-1 ring-[#FF6A00]"

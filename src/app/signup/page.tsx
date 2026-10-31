@@ -21,14 +21,28 @@ export default function Signup() {
     setError(null);
 
     try {
+      const cleanEmail = email.toLowerCase().trim();
+      const normRole = role === "influencer" ? "influencer" : "brand";
+
+      // Save to local accounts registry
+      try {
+        localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
+        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+        reg[cleanEmail] = {
+          role: normRole,
+          name: name || (normRole === "brand" ? "Brand" : "Creator"),
+        };
+        localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+      } catch (_) {}
+
       // 1. Sign up the user in Supabase Auth and pass custom data
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
             name: name,
-            role: role,
+            role: normRole,
           }
         }
       });
@@ -40,14 +54,14 @@ export default function Signup() {
         try {
           await supabase.from("profiles").upsert({
             id: authData.user.id,
-            name: name || (role === "brand" ? "Brand" : "Creator"),
-            role: role,
+            name: name || (normRole === "brand" ? "Brand" : "Creator"),
+            role: normRole,
           });
         } catch (_) {}
       }
 
       // 3. Redirect to appropriate dashboard based on role
-      if (role === "influencer") {
+      if (normRole === "influencer") {
         router.push("/dashboard/creator");
       } else {
         router.push("/dashboard/brand");
@@ -61,14 +75,23 @@ export default function Signup() {
         err.name === "TypeError";
 
       if (isNetworkOrFetch) {
+        const cleanEmail = email.toLowerCase().trim();
+        const normRole = role === "influencer" ? "influencer" : "brand";
         try {
+          localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
+          const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+          reg[cleanEmail] = {
+            role: normRole,
+            name: name || (normRole === "brand" ? "Brand" : "Creator"),
+          };
+          localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
           localStorage.setItem("wovzo_demo_user", JSON.stringify({
-            name: name || "Demo User",
-            email: email || "demo@wovzo.com",
-            role: role
+            name: name || (normRole === "brand" ? "Brand" : "Creator"),
+            email: cleanEmail,
+            role: normRole
           }));
         } catch (_) {}
-        router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
+        router.push(normRole === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
         return;
       }
       setError(err.message || "An error occurred during signup.");
