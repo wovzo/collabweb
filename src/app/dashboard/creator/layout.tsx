@@ -12,6 +12,7 @@ import {
   LogOut 
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function CreatorDashboardLayout({
   children,
@@ -71,19 +72,21 @@ export default function CreatorDashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {/* Mobile Header */}
-        <header className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+      <main className="flex-1 overflow-auto flex flex-col">
+        {/* Top Header */}
+        <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Wovzo" className="h-6 object-contain" />
-            <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Creator</span>
+            <div className="md:hidden flex items-center gap-2">
+              <img src="/logo.png" alt="Wovzo" className="h-6 object-contain" />
+              <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Creator</span>
+            </div>
           </div>
-          <button className="p-2 bg-gray-100 rounded-md">
-            <LayoutDashboard className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3 ml-auto">
+            <NotificationBell role="creator" />
+          </div>
         </header>
         
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto flex-1 w-full">
           {children}
         </div>
       </main>
