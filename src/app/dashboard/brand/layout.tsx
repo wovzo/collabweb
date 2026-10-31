@@ -8,6 +8,7 @@ import {
   Users, 
   MessageSquare, 
   ShieldCheck,
+  BarChart3,
   Settings, 
   LogOut 
 } from "lucide-react";
@@ -48,6 +49,10 @@ export default function BrandDashboardLayout({
           <Link href="/dashboard/brand/influencers" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/influencers') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Users className="w-5 h-5" />
             Applications
+          </Link>
+          <Link href="/dashboard/brand/analytics" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/analytics') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <BarChart3 className="w-5 h-5" />
+            Performance & Analytics
           </Link>
           <Link href="/dashboard/brand/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <MessageSquare className="w-5 h-5" />
