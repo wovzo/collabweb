@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail, Lock } from "lucide-react";
+import { ArrowRight, Mail, Lock, Megaphone, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const router = useRouter();
+  const [role, setRole] = useState<"brand" | "influencer">("brand");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,19 +28,30 @@ export default function Login() {
       if (authError) throw authError;
 
       if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
+        // Ensure profile exists with the selected role
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user.id)
+            .maybeSingle();
 
-        if (profile?.role === "influencer") {
+          if (!profile) {
+            await supabase.from("profiles").insert({
+              id: data.user.id,
+              name: data.user.user_metadata?.name || (role === "brand" ? "Brand" : "Creator"),
+              role: role,
+            });
+          }
+        } catch (_) {}
+
+        if (role === "influencer") {
           router.push("/dashboard/creator");
         } else {
           router.push("/dashboard/brand");
         }
       } else {
-        router.push("/dashboard/brand");
+        router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
       }
     } catch (err: any) {
       setError(err.message || "Failed to log in.");
@@ -74,6 +86,39 @@ export default function Login() {
                 {error}
               </div>
             )}
+
+            {/* Role Selection Tabs */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                Sign in as
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("brand")}
+                  className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
+                    role === "brand"
+                      ? "border-[#FF6A00] bg-orange-50 text-[#FF6A00] shadow-sm ring-1 ring-[#FF6A00]"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Megaphone className="w-4 h-4" />
+                  <span>Brand</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("influencer")}
+                  className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 font-semibold text-sm transition cursor-pointer ${
+                    role === "influencer"
+                      ? "border-[#FF6A00] bg-orange-50 text-[#FF6A00] shadow-sm ring-1 ring-[#FF6A00]"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Creator / Influencer</span>
+                </button>
+              </div>
+            </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -193,6 +238,34 @@ export default function Login() {
                     <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
                   </svg>
                 </a>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-2">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-400 font-semibold tracking-wider">Instant Test Demo</span>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/brand")}
+                  className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Megaphone className="w-3.5 h-3.5 text-[#FF6A00]" /> Sign in as Brand
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/creator")}
+                  className="py-2.5 px-3 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5 text-[#FF6A00]" /> Sign in as Creator
+                </button>
               </div>
             </div>
           </div>

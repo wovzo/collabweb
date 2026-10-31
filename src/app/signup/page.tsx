@@ -35,8 +35,23 @@ export default function Signup() {
 
       if (authError) throw authError;
 
-      // 3. Redirect to dashboard
-      router.push("/dashboard/brand");
+      // Ensure profile row exists
+      if (authData.user) {
+        try {
+          await supabase.from("profiles").upsert({
+            id: authData.user.id,
+            name: name || (role === "brand" ? "Brand" : "Creator"),
+            role: role,
+          });
+        } catch (_) {}
+      }
+
+      // 3. Redirect to appropriate dashboard based on role
+      if (role === "influencer") {
+        router.push("/dashboard/creator");
+      } else {
+        router.push("/dashboard/brand");
+      }
     } catch (err: any) {
       setError(err.message || "An error occurred during signup.");
     } finally {
