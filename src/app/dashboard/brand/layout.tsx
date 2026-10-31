@@ -7,6 +7,7 @@ import {
   Megaphone, 
   Users, 
   MessageSquare, 
+  ShieldCheck,
   Settings, 
   LogOut 
 } from "lucide-react";
@@ -51,6 +52,10 @@ export default function BrandDashboardLayout({
           <Link href="/dashboard/brand/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <MessageSquare className="w-5 h-5" />
             Messages
+          </Link>
+          <Link href="/dashboard/brand/escrow" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/escrow') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <ShieldCheck className="w-5 h-5" />
+            Escrow & Billing
           </Link>
         </nav>
         

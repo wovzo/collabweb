@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -70,14 +70,26 @@ export default function CampaignsPage() {
                     {campaign.description}
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <div className="bg-purple-50 text-purple-700 px-3 py-1 rounded-md text-sm font-medium">
                       {applicantsCount} Applicants
                     </div>
+                    {campaign.escrow_funded || campaign.escrow_status === "funded" ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-md border border-green-200">
+                        <ShieldCheck className="w-3.5 h-3.5 text-green-600" /> Escrow Funded
+                      </span>
+                    ) : (
+                      <Link 
+                        href="/dashboard/brand/escrow" 
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-md border border-amber-200 transition"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600" /> Fund Escrow
+                      </Link>
+                    )}
                     {applicantsCount > 0 && (
-                      <button className="text-[#FF6A00] text-sm font-medium hover:underline ml-2">
+                      <Link href="/dashboard/brand/influencers" className="text-[#FF6A00] text-sm font-medium hover:underline ml-2">
                         View Applicants
-                      </button>
+                      </Link>
                     )}
                   </div>
                 </div>
