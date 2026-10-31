@@ -7,6 +7,7 @@ import {
   Search, 
   Briefcase, 
   MessageSquare, 
+  Wallet,
   Settings, 
   LogOut 
 } from "lucide-react";
@@ -46,6 +47,10 @@ export default function CreatorDashboardLayout({
           <Link href="/dashboard/creator/applications" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/applications') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <Briefcase className="w-5 h-5" />
             My Applications
+          </Link>
+          <Link href="/dashboard/creator/wallet" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/wallet') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <Wallet className="w-5 h-5" />
+            Earnings & Wallet
           </Link>
           <Link href="/dashboard/creator/messages" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition ${pathname.includes('/messages') ? 'bg-orange-50 text-[#FF6A00] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
             <MessageSquare className="w-5 h-5" />
