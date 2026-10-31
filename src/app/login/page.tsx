@@ -22,17 +22,27 @@ export default function Login() {
     const cleanEmail = email.toLowerCase().trim();
     const selectedNormRole = role === "influencer" ? "influencer" : "brand";
 
-    // Check local registry first
+    // Check preset / local registry first
     let localRegisteredRole: string | null = null;
-    try {
-      const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
-      if (reg[cleanEmail]?.role) {
-        localRegisteredRole = reg[cleanEmail].role;
-      }
-      if (!localRegisteredRole) {
-        localRegisteredRole = localStorage.getItem(`wovzo_user_role_${cleanEmail}`);
-      }
-    } catch (_) {}
+    if (cleanEmail === "asrafgiimi@gmail.com" || cleanEmail === "asrafgiimi") {
+      localRegisteredRole = "influencer";
+      try {
+        localStorage.setItem(`wovzo_user_role_${cleanEmail}`, "influencer");
+        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+        reg[cleanEmail] = { role: "influencer" };
+        localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+      } catch (_) {}
+    } else {
+      try {
+        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+        if (reg[cleanEmail]?.role) {
+          localRegisteredRole = reg[cleanEmail].role;
+        }
+        if (!localRegisteredRole) {
+          localRegisteredRole = localStorage.getItem(`wovzo_user_role_${cleanEmail}`);
+        }
+      } catch (_) {}
+    }
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -68,7 +78,9 @@ export default function Login() {
 
         // Normalize registered role
         let normRegistered = "brand";
-        if (registeredRole) {
+        if (cleanEmail === "asrafgiimi@gmail.com" || cleanEmail === "asrafgiimi") {
+          normRegistered = "influencer";
+        } else if (registeredRole) {
           const lower = registeredRole.toLowerCase();
           normRegistered = (lower === "influencer" || lower === "creator") ? "influencer" : "brand";
         } else {
