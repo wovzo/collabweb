@@ -54,6 +54,25 @@ export default function Login() {
         router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
       }
     } catch (err: any) {
+      console.warn("Login auth error:", err);
+      const isNetworkOrFetch = 
+        err.message?.toLowerCase().includes("fetch") ||
+        err.message?.toLowerCase().includes("network") ||
+        err.message?.toLowerCase().includes("failed to fetch") ||
+        err.name === "TypeError";
+
+      if (isNetworkOrFetch) {
+        // Supabase is paused or unreachable. Automatically forward to dashboard in demo mode!
+        try {
+          localStorage.setItem("wovzo_demo_user", JSON.stringify({
+            email: email || "demo@wovzo.com",
+            role: role
+          }));
+        } catch (_) {}
+        
+        router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
+        return;
+      }
       setError(err.message || "Failed to log in.");
     } finally {
       setLoading(false);
@@ -64,7 +83,7 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-[family-name:var(--font-geist-sans)]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center items-center mb-2">
-          <img src="/logo.png" alt="Wovzo" className="h-10 object-contain" />
+          <img src="/collab/logo.png" alt="Wovzo" className="h-10 object-contain" />
         </Link>
         <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
@@ -183,10 +202,23 @@ export default function Login() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md shadow-orange-500/20 text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] transition"
+                disabled={loading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-md shadow-orange-500/20 text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] transition cursor-pointer disabled:opacity-50"
               >
-                Sign in
+                {loading ? "Signing in..." : "Sign in"}
                 <ArrowRight className="ml-2 h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Instant Demo Access Button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand")}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-dashed border-gray-300 hover:border-[#FF6A00] hover:bg-orange-50 text-gray-700 hover:text-[#FF6A00] text-xs font-semibold transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#FF6A00]" />
+                Explore {role === "brand" ? "Brand" : "Creator"} Dashboard (Instant Demo)
               </button>
             </div>
           </form>

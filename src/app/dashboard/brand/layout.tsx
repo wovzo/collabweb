@@ -33,7 +33,7 @@ export default function BrandDashboardLayout({
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex-col hidden md:flex">
         <Link href="/dashboard/brand" className="p-6 flex items-center gap-2">
-          <img src="/logo.png" alt="Wovzo" className="h-7 object-contain" />
+          <img src="/collab/logo.png" alt="Wovzo" className="h-7 object-contain" />
           <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Brand</span>
         </Link>
         
@@ -82,7 +82,7 @@ export default function BrandDashboardLayout({
         <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-2">
             <div className="md:hidden flex items-center gap-2">
-              <img src="/logo.png" alt="Wovzo" className="h-6 object-contain" />
+              <img src="/collab/logo.png" alt="Wovzo" className="h-6 object-contain" />
               <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-orange-50 rounded border border-orange-200 text-[#FF6A00]">Brand</span>
             </div>
           </div>

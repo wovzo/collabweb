@@ -53,6 +53,24 @@ export default function Signup() {
         router.push("/dashboard/brand");
       }
     } catch (err: any) {
+      console.warn("Signup error, checking fallback:", err);
+      const isNetworkOrFetch = 
+        err.message?.toLowerCase().includes("fetch") ||
+        err.message?.toLowerCase().includes("network") ||
+        err.message?.toLowerCase().includes("failed to fetch") ||
+        err.name === "TypeError";
+
+      if (isNetworkOrFetch) {
+        try {
+          localStorage.setItem("wovzo_demo_user", JSON.stringify({
+            name: name || "Demo User",
+            email: email || "demo@wovzo.com",
+            role: role
+          }));
+        } catch (_) {}
+        router.push(role === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
+        return;
+      }
       setError(err.message || "An error occurred during signup.");
     } finally {
       setLoading(false);
@@ -63,7 +81,7 @@ export default function Signup() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-[family-name:var(--font-geist-sans)]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center items-center mb-2">
-          <img src="/logo.png" alt="Wovzo" className="h-10 object-contain" />
+          <img src="/collab/logo.png" alt="Wovzo" className="h-10 object-contain" />
         </Link>
         <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
           Create your account
