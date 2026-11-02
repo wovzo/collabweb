@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail, Lock, User, Megaphone, Users } from "lucide-react";
+import { ArrowRight, Mail, Lock, User, Megaphone, Users, ShieldCheck, Camera, Video } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Signup() {
@@ -12,6 +12,8 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +25,9 @@ export default function Signup() {
     try {
       const cleanEmail = email.toLowerCase().trim();
       const normRole = role === "influencer" ? "influencer" : "brand";
+      const cleanIg = instagram.trim().replace(/^@/, '');
+      const cleanYt = youtube.trim();
+      const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
 
       // Save to local accounts registry
       try {
@@ -31,8 +36,21 @@ export default function Signup() {
         reg[cleanEmail] = {
           role: normRole,
           name: name || (normRole === "brand" ? "Brand" : "Creator"),
+          instagram: cleanIg ? `@${cleanIg}` : "",
+          youtube: cleanYt,
+          verification_code: verificationCode,
+          is_verified: false,
         };
         localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+        localStorage.setItem("wovzo_demo_user", JSON.stringify({
+          name: name || (normRole === "brand" ? "Brand" : "Creator"),
+          email: cleanEmail,
+          role: normRole,
+          instagram: cleanIg ? `@${cleanIg}` : "",
+          youtube: cleanYt,
+          verification_code: verificationCode,
+          is_verified: false,
+        }));
       } catch (_) {}
 
       // 1. Sign up the user in Supabase Auth and pass custom data
@@ -43,6 +61,12 @@ export default function Signup() {
           data: {
             name: name,
             role: normRole,
+            instagram: cleanIg ? `@${cleanIg}` : "",
+            youtube: cleanYt,
+            verification_code: verificationCode,
+            is_verified: false,
+            instagram_verified: false,
+            youtube_verified: false,
           }
         }
       });
@@ -56,6 +80,10 @@ export default function Signup() {
             id: authData.user.id,
             name: name || (normRole === "brand" ? "Brand" : "Creator"),
             role: normRole,
+            instagram: cleanIg ? `@${cleanIg}` : "",
+            youtube: cleanYt,
+            verification_code: verificationCode,
+            is_verified: false,
           });
         } catch (_) {}
       }
@@ -77,18 +105,29 @@ export default function Signup() {
       if (isNetworkOrFetch) {
         const cleanEmail = email.toLowerCase().trim();
         const normRole = role === "influencer" ? "influencer" : "brand";
+        const cleanIg = instagram.trim().replace(/^@/, '');
+        const cleanYt = youtube.trim();
+        const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
         try {
           localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
           const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
           reg[cleanEmail] = {
             role: normRole,
             name: name || (normRole === "brand" ? "Brand" : "Creator"),
+            instagram: cleanIg ? `@${cleanIg}` : "",
+            youtube: cleanYt,
+            verification_code: verificationCode,
+            is_verified: false,
           };
           localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
           localStorage.setItem("wovzo_demo_user", JSON.stringify({
             name: name || (normRole === "brand" ? "Brand" : "Creator"),
             email: cleanEmail,
-            role: normRole
+            role: normRole,
+            instagram: cleanIg ? `@${cleanIg}` : "",
+            youtube: cleanYt,
+            verification_code: verificationCode,
+            is_verified: false,
           }));
         } catch (_) {}
         router.push(normRole === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
@@ -202,6 +241,57 @@ export default function Signup() {
                 />
               </div>
             </div>
+
+            {role === "influencer" && (
+              <div className="p-4 bg-orange-50/70 border border-orange-200/80 rounded-2xl space-y-3.5">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#FF6A00] uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-[#FF6A00]" />
+                  <span>Creator Social Channels (For Verified Badge)</span>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-relaxed">
+                  Enter your handles to link your profile. You will receive a unique <span className="font-semibold text-gray-800">Bio Verification Code</span> (WOVZO-XXXX) to instantly verify ownership and earn the <strong>Verified Blue Badge</strong>!
+                </p>
+
+                <div>
+                  <label htmlFor="instagram" className="block text-xs font-semibold text-gray-700 mb-1">
+                    Instagram Username <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Camera className="h-4 w-4 text-pink-500" />
+                    </div>
+                    <input
+                      id="instagram"
+                      type="text"
+                      required
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      className="appearance-none block w-full pl-9 px-3 py-2 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] text-xs transition bg-white"
+                      placeholder="@yourhandle (e.g. @asrafgiimi)"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="youtube" className="block text-xs font-semibold text-gray-700 mb-1">
+                    YouTube Channel / Handle (Optional)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Video className="h-4 w-4 text-red-500" />
+                    </div>
+                    <input
+                      id="youtube"
+                      type="text"
+                      value={youtube}
+                      onChange={(e) => setYoutube(e.target.value)}
+                      className="appearance-none block w-full pl-9 px-3 py-2 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] text-xs transition bg-white"
+                      placeholder="@channel or youtube.com/@channel"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <button

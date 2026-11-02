@@ -82,7 +82,10 @@ export default function AdminPanel() {
       verified: true,
       wallet: 28500,
       joined: "2026-10-15",
-      socialHandle: "@asrafgiimi_reels"
+      socialHandle: "@asrafgiimi_reels",
+      instagram: "@asrafgiimi_reels",
+      youtube: "youtube.com/@asrafgiimi",
+      verificationCode: "WOVZO-4921",
     },
     {
       id: "usr-2",
@@ -93,7 +96,10 @@ export default function AdminPanel() {
       verified: true,
       wallet: 85000,
       joined: "2026-10-10",
-      socialHandle: "@fabindiaofficial"
+      socialHandle: "@fabindiaofficial",
+      instagram: "@fabindiaofficial",
+      youtube: "youtube.com/@fabindia",
+      verificationCode: "WOVZO-1102",
     },
     {
       id: "usr-3",
@@ -104,7 +110,10 @@ export default function AdminPanel() {
       verified: true,
       wallet: 14200,
       joined: "2026-10-18",
-      socialHandle: "@ananyasharma_fit"
+      socialHandle: "@ananyasharma_fit",
+      instagram: "@ananyasharma_fit",
+      youtube: "youtube.com/@ananyafit",
+      verificationCode: "WOVZO-7832",
     },
     {
       id: "usr-4",
@@ -115,7 +124,10 @@ export default function AdminPanel() {
       verified: true,
       wallet: 150000,
       joined: "2026-10-05",
-      socialHandle: "@boat.nirvana"
+      socialHandle: "@boat.nirvana",
+      instagram: "@boat.nirvana",
+      youtube: "youtube.com/@boatlifestyle",
+      verificationCode: "WOVZO-9034",
     },
     {
       id: "usr-5",
@@ -126,7 +138,10 @@ export default function AdminPanel() {
       verified: false,
       wallet: 0,
       joined: "2026-10-22",
-      socialHandle: "@vikramtech"
+      socialHandle: "@vikramtech",
+      instagram: "@vikramtech",
+      youtube: "youtube.com/@vikramtechreviews",
+      verificationCode: "WOVZO-3841",
     },
   ]);
 
@@ -251,6 +266,36 @@ export default function AdminPanel() {
       if (savedControls) {
         setAppControls(JSON.parse(savedControls));
       }
+
+      // Sync any registered accounts from local registry into admin users list
+      const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+      const extraUsers: any[] = [];
+      Object.keys(reg).forEach((email, idx) => {
+        const item = reg[email];
+        setUsersList(prev => {
+          const exists = prev.some(u => u.email.toLowerCase() === email.toLowerCase());
+          if (!exists) {
+            return [
+              {
+                id: `usr-reg-${idx + 10}`,
+                name: item.name || (item.role === "brand" ? "Brand" : "Creator"),
+                email: email,
+                role: item.role === "brand" ? "brand" : "creator",
+                status: "active",
+                verified: Boolean(item.is_verified),
+                wallet: item.role === "creator" ? 5000 : 50000,
+                joined: "Just now",
+                socialHandle: item.instagram || "@creator",
+                instagram: item.instagram || "",
+                youtube: item.youtube || "",
+                verificationCode: item.verification_code || `WOVZO-${4000 + idx}`,
+              },
+              ...prev
+            ];
+          }
+          return prev;
+        });
+      });
     } catch (_) {}
   }, []);
 
@@ -794,10 +839,11 @@ export default function AdminPanel() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
                     <tr>
-                      <th className="py-3.5 px-4">User & Handle</th>
+                      <th className="py-3.5 px-4">User & Handles</th>
                       <th className="py-3.5 px-4">Role</th>
                       <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-4">Verification</th>
+                      <th className="py-3.5 px-4">Bio Secret Code</th>
+                      <th className="py-3.5 px-4">Verified Badge</th>
                       <th className="py-3.5 px-4">Wallet Balance</th>
                       <th className="py-3.5 px-4">Joined</th>
                       <th className="py-3.5 px-4 text-right">Admin Actions</th>
@@ -806,7 +852,7 @@ export default function AdminPanel() {
                   <tbody className="divide-y divide-slate-800/80">
                     {filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-8 text-slate-500">
+                        <td colSpan={8} className="text-center py-8 text-slate-500">
                           No users found matching query.
                         </td>
                       </tr>
@@ -814,18 +860,29 @@ export default function AdminPanel() {
                       <tr key={user.id} className="hover:bg-slate-800/40 transition">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-white text-sm">
+                            <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-white text-sm shrink-0">
                               {user.name[0]}
                             </div>
                             <div>
                               <div className="font-bold text-white flex items-center gap-1.5">
                                 <span>{user.name}</span>
                                 {user.verified && (
-                                  <BadgeCheck className="w-4 h-4 text-[#FF6A00]" />
+                                  <BadgeCheck className="w-4 h-4 text-sky-400 fill-sky-400" />
                                 )}
                               </div>
                               <div className="text-[11px] text-slate-400">{user.email}</div>
-                              <div className="text-[10px] text-[#FF6A00] font-mono">{user.socialHandle}</div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                {(user.instagram || user.socialHandle) && (
+                                  <span className="text-[10px] text-pink-400 font-mono font-medium">
+                                    IG: {user.instagram || user.socialHandle}
+                                  </span>
+                                )}
+                                {user.youtube && (
+                                  <span className="text-[10px] text-red-400 font-mono font-medium">
+                                    YT: {user.youtube}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -851,16 +908,29 @@ export default function AdminPanel() {
                         </td>
 
                         <td className="py-4 px-4">
+                          {user.role === "creator" ? (
+                            <div className="flex items-center gap-1.5">
+                              <code className="font-mono text-xs font-bold text-[#FF6A00] bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800">
+                                {user.verificationCode || "WOVZO-4921"}
+                              </code>
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 text-[11px]">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-4 px-4">
                           <button
                             onClick={() => toggleUserVerification(user.id)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                               user.verified
-                                ? "bg-[#FF6A00]/20 text-[#FF6A00] border border-[#FF6A00]/40"
-                                : "bg-slate-800 text-slate-400 hover:text-white"
+                                ? "bg-sky-500/10 text-sky-400 border border-sky-500/30 hover:bg-sky-500/20"
+                                : "bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20"
                             }`}
+                            title="Click to toggle / force ownership verification"
                           >
-                            <BadgeCheck className="w-3.5 h-3.5" />
-                            <span>{user.verified ? "Verified" : "Unverified"}</span>
+                            <BadgeCheck className={`w-3.5 h-3.5 ${user.verified ? "fill-sky-400" : ""}`} />
+                            <span>{user.verified ? "Verified ✓" : "Verify Bio"}</span>
                           </button>
                         </td>
 
@@ -881,7 +951,7 @@ export default function AdminPanel() {
                                 : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30"
                             }`}
                           >
-                            {user.status === "active" ? "Suspend Account" : "Activate Account"}
+                            {user.status === "active" ? "Suspend" : "Activate"}
                           </button>
                         </td>
                       </tr>

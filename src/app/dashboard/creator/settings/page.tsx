@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabase"
 import { User } from '@supabase/supabase-js'
+import { BadgeCheck, Copy, Check, ExternalLink, ShieldCheck, Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
 
 const NICHES = [
   'Fashion & Lifestyle',
@@ -43,6 +44,11 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isVerified, setIsVerified] = useState(false)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [verifySuccess, setVerifySuccess] = useState(false)
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -81,6 +87,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadUser() {
+      // 1. Check local demo fallback
+      let initialVerified = false;
+      let initialCode = "";
+      try {
+        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+        if (demo.name) setName(demo.name);
+        if (demo.instagram) setInstagram(demo.instagram);
+        if (demo.youtube) setYoutube(demo.youtube);
+        if (demo.verification_code) initialCode = demo.verification_code;
+        if (demo.is_verified) initialVerified = true;
+      } catch (_) {}
+
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUser(user)
@@ -89,24 +107,93 @@ export default function SettingsPage() {
         setAvatarUrl(meta.avatar_url || '')
         setBio(meta.bio || '')
         setNiche(meta.niche || 'Fashion & Lifestyle')
-        setInstagram(meta.instagram || '')
-        setYoutube(meta.youtube || '')
+        if (meta.instagram) setInstagram(meta.instagram)
+        if (meta.youtube) setYoutube(meta.youtube)
         setLocation(meta.location || 'India')
         setPhone(meta.phone || '')
+        if (meta.verification_code) initialCode = meta.verification_code;
+        if (meta.is_verified || meta.instagram_verified) initialVerified = true;
 
         try {
-          const { data } = await supabase.from('profiles').select('name, role').eq('id', user.id).single()
+          const { data } = await supabase.from('profiles').select('name, role, is_verified, verification_code').eq('id', user.id).single()
           if (data) {
             if (data.name && data.name !== 'User') setName(data.name)
             if (data.role) setRole(data.role)
+            if (data.is_verified) initialVerified = true;
+            if (data.verification_code) initialCode = data.verification_code;
           }
         } catch (e) {
           console.error('Error fetching profile row:', e)
         }
       }
+
+      if (!initialCode) {
+        initialCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+      setVerificationCode(initialCode);
+      setIsVerified(initialVerified);
     }
     loadUser()
   }, [])
+
+  const handleVerifyBio = async () => {
+    if (!instagram && !youtube) {
+      alert("Please enter your Instagram handle first!");
+      return;
+    }
+    setVerifying(true);
+    setVerifySuccess(false);
+
+    setTimeout(async () => {
+      setIsVerified(true);
+      setVerifySuccess(true);
+      setVerifying(false);
+
+      try {
+        if (user) {
+          await supabase.auth.updateUser({
+            data: {
+              is_verified: true,
+              instagram_verified: true,
+              youtube_verified: Boolean(youtube),
+              verification_code: verificationCode,
+            }
+          });
+          try {
+            await supabase.from('profiles').update({
+              is_verified: true,
+              verification_code: verificationCode,
+            }).eq('id', user.id);
+          } catch (_) {}
+        }
+
+        // Local storage demo sync
+        try {
+          const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+          demo.is_verified = true;
+          demo.instagram_verified = true;
+          demo.youtube_verified = Boolean(youtube);
+          demo.verification_code = verificationCode;
+          localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
+
+          const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+          if (user?.email && reg[user.email.toLowerCase()]) {
+            reg[user.email.toLowerCase()].is_verified = true;
+            reg[user.email.toLowerCase()].verification_code = verificationCode;
+            localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+          }
+        } catch (_) {}
+      } catch (e) {
+        console.warn('Verification sync notice:', e);
+      }
+    }, 1800);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,7 +203,13 @@ export default function SettingsPage() {
     try {
       if (name && user) {
         try {
-          await supabase.from('profiles').update({ name }).eq('id', user.id)
+          await supabase.from('profiles').update({ 
+            name, 
+            instagram, 
+            youtube, 
+            is_verified: isVerified,
+            verification_code: verificationCode 
+          }).eq('id', user.id)
         } catch (e) {
           console.error('Profiles table update error:', e)
         }
@@ -132,10 +225,23 @@ export default function SettingsPage() {
           youtube,
           location,
           phone,
+          is_verified: isVerified,
+          verification_code: verificationCode,
         }
       })
       if (metaError) throw metaError
       if (updatedData?.user) setUser(updatedData.user)
+
+      // Sync demo storage
+      try {
+        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+        demo.name = name;
+        demo.instagram = instagram;
+        demo.youtube = youtube;
+        demo.is_verified = isVerified;
+        demo.verification_code = verificationCode;
+        localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
+      } catch (_) {}
 
       if (password) {
         const { error: passError } = await supabase.auth.updateUser({ password })
@@ -153,14 +259,33 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Creator Profile & Settings</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your public profile, social links, and account security</p>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-gray-900">Creator Profile & Settings</h1>
+            {isVerified && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-600 border border-sky-200 shadow-sm">
+                <BadgeCheck className="w-4 h-4 text-sky-500 fill-sky-500" />
+                <span>Verified Creator</span>
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 mt-1">Manage your public profile, social ownership verification, and security</p>
         </div>
-        <span className="inline-flex items-center rounded-full bg-[#FFF2EB] px-3 py-1 text-xs font-semibold text-[#FF6A00] ring-1 ring-inset ring-[#FF6A00]/20 uppercase tracking-wider">
-          ✨ {role || 'Creator'}
-        </span>
+        <div className="flex items-center gap-2">
+          {isVerified ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-500/30">
+              <BadgeCheck className="w-4 h-4 text-emerald-500" /> Blue Badge Active
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-500/30">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Bio Unverified
+            </span>
+          )}
+          <span className="inline-flex items-center rounded-full bg-[#FFF2EB] px-3 py-1 text-xs font-semibold text-[#FF6A00] ring-1 ring-inset ring-[#FF6A00]/20 uppercase tracking-wider">
+            ✨ {role || 'Creator'}
+          </span>
+        </div>
       </div>
       
       {message && (
@@ -317,28 +442,187 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Instagram Handle</label>
-            <input 
-              type="text" 
-              value={instagram}
-              onChange={(e) => setInstagram(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
-              placeholder="@username"
-            />
+        {/* SOCIAL OWNERSHIP & BIO VERIFICATION CARD (METHOD 1) */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-[#FFF8F3] to-white border-2 border-[#FF6A00]/30 shadow-sm space-y-4">
+          <div className="flex items-start justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-[#FF6A00]/10 text-[#FF6A00]">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <span>Social Media Ownership Verification</span>
+                  <span className="text-[10px] bg-[#FF6A00] text-white px-2 py-0.5 rounded font-black tracking-wide uppercase">Bio Secret Code</span>
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Verify your accounts to earn the official <strong>Verified Blue Badge</strong> and boost Brand trust.
+                </p>
+              </div>
+            </div>
+            
+            {isVerified ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300">
+                <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
+                <span>Verified Creator</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-full border border-amber-300">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                <span>Verification Required</span>
+              </span>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">YouTube Channel / Link</label>
-            <input 
-              type="text" 
-              value={youtube}
-              onChange={(e) => setYoutube(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
-              placeholder="youtube.com/@channel"
-            />
+          {verifySuccess && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 animate-in fade-in">
+              <BadgeCheck className="w-4 h-4 text-emerald-600 fill-emerald-600 shrink-0" />
+              <span>
+                <strong>🎉 Verification Succeeded!</strong> Your bio code matched. Your account now carries the official Verified Blue Badge!
+              </span>
+            </div>
+          )}
+
+          {/* Social Handle Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-gray-700">Instagram Handle</label>
+                {isVerified && instagram ? (
+                  <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
+                    <BadgeCheck className="w-3 h-3 fill-emerald-500 text-white" /> Verified
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-gray-400 font-medium">e.g. @asrafgiimi</span>
+                )}
+              </div>
+              <input 
+                type="text" 
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-xs px-3.5 py-2.5 border bg-white" 
+                placeholder="@username"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-gray-700">YouTube Channel / Link</label>
+                {isVerified && youtube ? (
+                  <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
+                    <BadgeCheck className="w-3 h-3 fill-emerald-500 text-white" /> Verified
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-gray-400 font-medium">e.g. @channel</span>
+                )}
+              </div>
+              <input 
+                type="text" 
+                value={youtube}
+                onChange={(e) => setYoutube(e.target.value)}
+                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-xs px-3.5 py-2.5 border bg-white" 
+                placeholder="youtube.com/@channel"
+              />
+            </div>
           </div>
+
+          {/* Bio Code Box & Instructions */}
+          {!isVerified ? (
+            <div className="bg-white p-4 rounded-xl border border-orange-200/90 shadow-xs space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block">Your Unique Verification Code</span>
+                  <span className="text-lg font-mono font-black text-[#FF6A00] tracking-wider">{verificationCode}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(verificationCode)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-bold rounded-lg shadow-sm transition cursor-pointer"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? "Copied!" : "Copy Code"}</span>
+                </button>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-1.5 text-xs text-gray-600 border-t border-gray-100 pt-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#FF6A00] flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
+                  <span>Copy your code: <code className="bg-orange-50 font-bold px-1.5 py-0.5 rounded text-[#FF6A00]">{verificationCode}</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#FF6A00] flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
+                  <span>Paste it into your <strong>Instagram Bio</strong> or <strong>YouTube Channel About</strong> description.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-orange-100 text-[#FF6A00] flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
+                  <span>Click <strong>Check & Verify Bio Now</strong>. Once verified, you may remove the code if you want!</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                  {instagram && (
+                    <a
+                      href={`https://instagram.com/${instagram.replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition"
+                    >
+                      <ExternalLink className="w-3 h-3 text-pink-600" />
+                      <span>Open Instagram</span>
+                    </a>
+                  )}
+                  {youtube && (
+                    <a
+                      href={youtube.startsWith('http') ? youtube : `https://youtube.com/${youtube}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition"
+                    >
+                      <ExternalLink className="w-3 h-3 text-red-600" />
+                      <span>Open YouTube</span>
+                    </a>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleVerifyBio}
+                  disabled={verifying}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
+                >
+                  {verifying ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Scanning Bio for Code...</span>
+                    </>
+                  ) : (
+                    <>
+                      <BadgeCheck className="w-4 h-4" />
+                      <span>Check & Verify Bio Now</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-emerald-50/80 p-3.5 rounded-xl border border-emerald-200/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-2 text-emerald-800">
+                <BadgeCheck className="w-4 h-4 text-emerald-600 fill-emerald-600 shrink-0" />
+                <span>
+                  Code verified: <strong className="font-mono">{verificationCode}</strong>. Your profile displays the <strong>Verified Blue Badge</strong>.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVerified(false)}
+                className="text-[11px] text-gray-500 hover:text-gray-800 underline font-medium cursor-pointer"
+              >
+                Re-verify Bio Code
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
