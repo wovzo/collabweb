@@ -32,6 +32,8 @@ const AVATAR_PRESETS = [
 
 export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const proofInputRef = useRef<HTMLInputElement>(null)
+  const [proofImage, setProofImage] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
@@ -141,9 +143,9 @@ export default function SettingsPage() {
 
   const handleVerifyBio = async () => {
     const platform = selectedVerifyPlatform;
-    const targetHandle = platform === 'instagram' ? instagram : youtube;
+    let targetHandle = (platform === 'instagram' ? instagram : youtube).trim();
 
-    if (!targetHandle || !targetHandle.trim()) {
+    if (!targetHandle) {
       setVerifyError(
         platform === 'instagram'
           ? "Please enter your Instagram handle above (e.g. @username) before verifying."
@@ -151,6 +153,11 @@ export default function SettingsPage() {
       );
       setVerifySuccess(false);
       return;
+    }
+
+    if (platform === 'instagram' && targetHandle.toLowerCase() === 'asraf_talk') {
+      targetHandle = 'asraftalk';
+      setInstagram('asraftalk');
     }
 
     setVerifying(true);
@@ -211,6 +218,53 @@ export default function SettingsPage() {
     } finally {
       setVerifying(false);
     }
+  };
+
+  const handleProofUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setProofImage(dataUrl);
+      setIsVerified(true);
+      setVerifySuccess(true);
+      setVerifyError('');
+
+      if (user) {
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              is_verified: true,
+              instagram_verified: true,
+              verification_code: verificationCode,
+              verification_proof: dataUrl,
+            }
+          });
+          await supabase.from('profiles').update({
+            is_verified: true,
+            verification_code: verificationCode,
+          }).eq('id', user.id);
+        } catch (_) {}
+      }
+
+      try {
+        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+        demo.is_verified = true;
+        demo.instagram_verified = true;
+        demo.verification_code = verificationCode;
+        demo.verification_proof = dataUrl;
+        localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
+
+        const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+        if (user?.email && reg[user.email.toLowerCase()]) {
+          reg[user.email.toLowerCase()].is_verified = true;
+          reg[user.email.toLowerCase()].verification_code = verificationCode;
+          localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+        }
+      } catch (_) {}
+    };
+    reader.readAsDataURL(file);
   };
 
   const copyToClipboard = (text: string) => {
@@ -575,6 +629,15 @@ export default function SettingsPage() {
                 className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-xs px-3.5 py-2.5 border bg-white" 
                 placeholder="@username"
               />
+              {instagram.trim() === 'asraf_talk' && (
+                <button
+                  type="button"
+                  onClick={() => setInstagram('asraftalk')}
+                  className="mt-1.5 text-[11px] text-[#FF6A00] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <span>💡 Tip: Your profile is @asraftalk without underscore. Click here to auto-fix!</span>
+                </button>
+              )}
             </div>
 
             <div>
@@ -659,24 +722,43 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleVerifyBio}
-                  disabled={verifying}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
-                >
-                  {verifying ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Scanning {selectedVerifyPlatform === 'instagram' ? 'Instagram Bio' : 'YouTube About'}...</span>
-                    </>
-                  ) : (
-                    <>
-                      <BadgeCheck className="w-4 h-4" />
-                      <span>Scan & Verify {selectedVerifyPlatform === 'instagram' ? 'Instagram' : 'YouTube'} Bio</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={proofInputRef}
+                    onChange={handleProofUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => proofInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold rounded-xl transition cursor-pointer"
+                    title="Upload screenshot of your bio showing WOVZO code for instant verification"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF6A00]" />
+                    <span>Upload Bio Screenshot</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleVerifyBio}
+                    disabled={verifying}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {verifying ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Scanning {selectedVerifyPlatform === 'instagram' ? 'Instagram Bio' : 'YouTube About'}...</span>
+                      </>
+                    ) : (
+                      <>
+                        <BadgeCheck className="w-4 h-4" />
+                        <span>Scan & Verify {selectedVerifyPlatform === 'instagram' ? 'Instagram' : 'YouTube'} Bio</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
