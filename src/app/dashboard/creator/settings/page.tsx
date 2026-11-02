@@ -48,7 +48,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
-  const [verificationCode, setVerificationCode] = useState('')
+  const [verificationCode, setVerificationCode] = useState('WOVZO-2401')
   const [verifying, setVerifying] = useState(false)
   const [copied, setCopied] = useState(false)
   const [verifySuccess, setVerifySuccess] = useState(false)
@@ -92,57 +92,73 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadUser() {
-      // 1. Check local demo fallback
       let initialVerified = false;
-      let initialCode = localStorage.getItem('wovzo_creator_bio_code') || "";
+      let initialCode = "WOVZO-2401";
+
       try {
+        const storedCode = localStorage.getItem('wovzo_creator_bio_code');
+        if (storedCode && storedCode.startsWith('WOVZO-')) {
+          initialCode = storedCode;
+        }
+
         const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
         if (demo.name) setName(demo.name);
         if (demo.instagram) setInstagram(demo.instagram);
         if (demo.youtube) setYoutube(demo.youtube);
-        if (!initialCode && demo.verification_code) initialCode = demo.verification_code;
-        if (demo.is_verified) initialVerified = true;
-      } catch (_) {}
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        const meta = user.user_metadata || {}
-        if (meta.name) setName(meta.name)
-        setAvatarUrl(meta.avatar_url || '')
-        setBio(meta.bio || '')
-        setNiche(meta.niche || 'Fashion & Lifestyle')
-        if (meta.instagram) setInstagram(meta.instagram)
-        if (meta.youtube) setYoutube(meta.youtube)
-        setLocation(meta.location || 'India')
-        setPhone(meta.phone || '')
-        if (!initialCode && meta.verification_code) initialCode = meta.verification_code;
-        if (meta.is_verified || meta.instagram_verified) initialVerified = true;
-
-        try {
-          const { data } = await supabase.from('profiles').select('name, role, is_verified, verification_code').eq('id', user.id).single()
-          if (data) {
-            if (data.name && data.name !== 'User') setName(data.name)
-            if (data.role) setRole(data.role)
-            if (data.is_verified) initialVerified = true;
-            if (!initialCode && data.verification_code) initialCode = data.verification_code;
-          }
-        } catch (e) {
-          console.error('Error fetching profile row:', e)
+        if (demo.verification_code && demo.verification_code.startsWith('WOVZO-')) {
+          initialCode = demo.verification_code;
         }
-      }
+        if (demo.is_verified) initialVerified = true;
 
-      if (!initialCode) {
-        initialCode = "WOVZO-2401";
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (user) {
+          setUser(user);
+          const meta = user.user_metadata || {};
+          if (meta.name) setName(meta.name);
+          setAvatarUrl(meta.avatar_url || '');
+          setBio(meta.bio || '');
+          setNiche(meta.niche || 'Fashion & Lifestyle');
+          if (meta.instagram) setInstagram(meta.instagram);
+          if (meta.youtube) setYoutube(meta.youtube);
+          setLocation(meta.location || 'India');
+          setPhone(meta.phone || '');
+          if (meta.verification_code && meta.verification_code.startsWith('WOVZO-')) {
+            initialCode = meta.verification_code;
+          }
+          if (meta.is_verified || meta.instagram_verified) initialVerified = true;
+
+          try {
+            const { data: profileRow } = await supabase
+              .from('profiles')
+              .select('name, role, is_verified, verification_code')
+              .eq('id', user.id)
+              .single();
+            if (profileRow) {
+              if (profileRow.name && profileRow.name !== 'User') setName(profileRow.name);
+              if (profileRow.role) setRole(profileRow.role);
+              if (profileRow.is_verified) initialVerified = true;
+              if (profileRow.verification_code && profileRow.verification_code.startsWith('WOVZO-')) {
+                initialCode = profileRow.verification_code;
+              }
+            }
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('Load user notice:', err);
+      } finally {
+        if (!initialCode || !initialCode.startsWith('WOVZO-')) {
+          initialCode = "WOVZO-2401";
+        }
+        try {
+          localStorage.setItem('wovzo_creator_bio_code', initialCode);
+        } catch (_) {}
+        setVerificationCode(initialCode);
+        setIsVerified(initialVerified);
       }
-      try {
-        localStorage.setItem('wovzo_creator_bio_code', initialCode);
-      } catch (_) {}
-      setVerificationCode(initialCode);
-      setIsVerified(initialVerified);
     }
-    loadUser()
-  }, [])
+    loadUser();
+  }, []);
 
   const handleVerifyBio = async () => {
     const platform = selectedVerifyPlatform;
