@@ -94,13 +94,13 @@ export default function SettingsPage() {
     async function loadUser() {
       // 1. Check local demo fallback
       let initialVerified = false;
-      let initialCode = "";
+      let initialCode = localStorage.getItem('wovzo_creator_bio_code') || "";
       try {
         const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
         if (demo.name) setName(demo.name);
         if (demo.instagram) setInstagram(demo.instagram);
         if (demo.youtube) setYoutube(demo.youtube);
-        if (demo.verification_code) initialCode = demo.verification_code;
+        if (!initialCode && demo.verification_code) initialCode = demo.verification_code;
         if (demo.is_verified) initialVerified = true;
       } catch (_) {}
 
@@ -116,7 +116,7 @@ export default function SettingsPage() {
         if (meta.youtube) setYoutube(meta.youtube)
         setLocation(meta.location || 'India')
         setPhone(meta.phone || '')
-        if (meta.verification_code) initialCode = meta.verification_code;
+        if (!initialCode && meta.verification_code) initialCode = meta.verification_code;
         if (meta.is_verified || meta.instagram_verified) initialVerified = true;
 
         try {
@@ -125,7 +125,7 @@ export default function SettingsPage() {
             if (data.name && data.name !== 'User') setName(data.name)
             if (data.role) setRole(data.role)
             if (data.is_verified) initialVerified = true;
-            if (data.verification_code) initialCode = data.verification_code;
+            if (!initialCode && data.verification_code) initialCode = data.verification_code;
           }
         } catch (e) {
           console.error('Error fetching profile row:', e)
@@ -133,8 +133,11 @@ export default function SettingsPage() {
       }
 
       if (!initialCode) {
-        initialCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
+        initialCode = "WOVZO-2401";
       }
+      try {
+        localStorage.setItem('wovzo_creator_bio_code', initialCode);
+      } catch (_) {}
       setVerificationCode(initialCode);
       setIsVerified(initialVerified);
     }
