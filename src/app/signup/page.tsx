@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail, Lock, User, Megaphone, Users, ShieldCheck, Camera, Video } from "lucide-react";
+import { ArrowRight, Mail, Lock, User, Megaphone, Users, ShieldCheck, Camera, Video, Building2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Signup() {
   const router = useRouter();
   const [role, setRole] = useState("influencer");
   const [name, setName] = useState("");
+  const [brandName, setBrandName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [instagram, setInstagram] = useState("");
@@ -28,6 +29,7 @@ export default function Signup() {
       const cleanIg = instagram.trim().replace(/^@/, '');
       const cleanYt = youtube.trim();
       const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
+      const displayName = normRole === "brand" ? (brandName.trim() || name.trim() || "Brand") : (name.trim() || "Creator");
 
       // Save to local accounts registry
       try {
@@ -35,7 +37,9 @@ export default function Signup() {
         const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
         reg[cleanEmail] = {
           role: normRole,
-          name: name || (normRole === "brand" ? "Brand" : "Creator"),
+          name: displayName,
+          brand_name: normRole === "brand" ? brandName.trim() : "",
+          contact_name: name.trim(),
           instagram: cleanIg ? `@${cleanIg}` : "",
           youtube: cleanYt,
           verification_code: verificationCode,
@@ -43,7 +47,9 @@ export default function Signup() {
         };
         localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
         localStorage.setItem("wovzo_demo_user", JSON.stringify({
-          name: name || (normRole === "brand" ? "Brand" : "Creator"),
+          name: displayName,
+          brand_name: normRole === "brand" ? brandName.trim() : "",
+          contact_name: name.trim(),
           email: cleanEmail,
           role: normRole,
           instagram: cleanIg ? `@${cleanIg}` : "",
@@ -59,7 +65,9 @@ export default function Signup() {
         password,
         options: {
           data: {
-            name: name,
+            name: displayName,
+            brand_name: normRole === "brand" ? brandName.trim() : "",
+            contact_name: name.trim(),
             role: normRole,
             instagram: cleanIg ? `@${cleanIg}` : "",
             youtube: cleanYt,
@@ -78,7 +86,7 @@ export default function Signup() {
         try {
           await supabase.from("profiles").upsert({
             id: authData.user.id,
-            name: name || (normRole === "brand" ? "Brand" : "Creator"),
+            name: displayName,
             role: normRole,
             instagram: cleanIg ? `@${cleanIg}` : "",
             youtube: cleanYt,
@@ -108,12 +116,15 @@ export default function Signup() {
         const cleanIg = instagram.trim().replace(/^@/, '');
         const cleanYt = youtube.trim();
         const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
+        const displayName = normRole === "brand" ? (brandName.trim() || name.trim() || "Brand") : (name.trim() || "Creator");
         try {
           localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
           const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
           reg[cleanEmail] = {
             role: normRole,
-            name: name || (normRole === "brand" ? "Brand" : "Creator"),
+            name: displayName,
+            brand_name: normRole === "brand" ? brandName.trim() : "",
+            contact_name: name.trim(),
             instagram: cleanIg ? `@${cleanIg}` : "",
             youtube: cleanYt,
             verification_code: verificationCode,
@@ -121,7 +132,9 @@ export default function Signup() {
           };
           localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
           localStorage.setItem("wovzo_demo_user", JSON.stringify({
-            name: name || (normRole === "brand" ? "Brand" : "Creator"),
+            name: displayName,
+            brand_name: normRole === "brand" ? brandName.trim() : "",
+            contact_name: name.trim(),
             email: cleanEmail,
             role: normRole,
             instagram: cleanIg ? `@${cleanIg}` : "",
@@ -182,25 +195,69 @@ export default function Signup() {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full Name / Brand Name
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+            {role === "influencer" ? (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="name"
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
+                    placeholder="e.g. Asraf Ali"
+                  />
                 </div>
-                <input
-                  id="name"
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
-                  placeholder="John Doe"
-                />
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="brandName" className="block text-sm font-medium text-gray-700">
+                    Brand / Company Name
+                  </label>
+                  <div className="mt-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Building2 className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="brandName"
+                      type="text"
+                      required
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
+                      placeholder="e.g. FabIndia, boAt Lifestyle"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">
+                    Your Full Name (Brand Manager / Founder)
+                  </label>
+                  <div className="mt-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="contactName"
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
+                      placeholder="e.g. Rahul Sharma"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
