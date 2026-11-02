@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabase"
 import { User } from '@supabase/supabase-js'
-import { BadgeCheck, Copy, Check, ExternalLink, ShieldCheck, Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
+import { BadgeCheck, Copy, Check, ExternalLink, ShieldCheck, Sparkles, RefreshCw, AlertCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { verifySocialBioOnline } from '@/lib/verifyBio'
 
 const NICHES = [
   'Fashion & Lifestyle',
@@ -49,6 +50,8 @@ export default function SettingsPage() {
   const [verifying, setVerifying] = useState(false)
   const [copied, setCopied] = useState(false)
   const [verifySuccess, setVerifySuccess] = useState(false)
+  const [verifyError, setVerifyError] = useState('')
+  const [selectedVerifyPlatform, setSelectedVerifyPlatform] = useState<'instagram' | 'youtube'>('instagram')
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -137,42 +140,54 @@ export default function SettingsPage() {
   }, [])
 
   const handleVerifyBio = async () => {
-    if (!instagram && !youtube) {
-      alert("Please enter your Instagram handle first!");
+    const platform = selectedVerifyPlatform;
+    const targetHandle = platform === 'instagram' ? instagram : youtube;
+
+    if (!targetHandle || !targetHandle.trim()) {
+      setVerifyError(
+        platform === 'instagram'
+          ? "Please enter your Instagram handle above (e.g. @username) before verifying."
+          : "Please enter your YouTube channel link or handle above before verifying."
+      );
+      setVerifySuccess(false);
       return;
     }
+
     setVerifying(true);
     setVerifySuccess(false);
+    setVerifyError('');
 
-    setTimeout(async () => {
-      setIsVerified(true);
-      setVerifySuccess(true);
-      setVerifying(false);
+    try {
+      const result = await verifySocialBioOnline(platform, targetHandle, verificationCode);
 
-      try {
-        if (user) {
-          await supabase.auth.updateUser({
-            data: {
-              is_verified: true,
-              instagram_verified: true,
-              youtube_verified: Boolean(youtube),
-              verification_code: verificationCode,
-            }
-          });
-          try {
-            await supabase.from('profiles').update({
-              is_verified: true,
-              verification_code: verificationCode,
-            }).eq('id', user.id);
-          } catch (_) {}
-        }
+      if (result.success) {
+        setIsVerified(true);
+        setVerifySuccess(true);
+        setVerifyError('');
 
-        // Local storage demo sync
         try {
+          if (user) {
+            await supabase.auth.updateUser({
+              data: {
+                is_verified: true,
+                instagram_verified: platform === 'instagram' || Boolean(instagram),
+                youtube_verified: platform === 'youtube' || Boolean(youtube),
+                verification_code: verificationCode,
+              }
+            });
+            try {
+              await supabase.from('profiles').update({
+                is_verified: true,
+                verification_code: verificationCode,
+              }).eq('id', user.id);
+            } catch (_) {}
+          }
+
+          // Local storage demo sync
           const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
           demo.is_verified = true;
-          demo.instagram_verified = true;
-          demo.youtube_verified = Boolean(youtube);
+          demo.instagram_verified = platform === 'instagram' || Boolean(instagram);
+          demo.youtube_verified = platform === 'youtube' || Boolean(youtube);
           demo.verification_code = verificationCode;
           localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
 
@@ -183,10 +198,19 @@ export default function SettingsPage() {
             localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
           }
         } catch (_) {}
-      } catch (e) {
-        console.warn('Verification sync notice:', e);
+      } else {
+        // Verification failed! Keep unverified
+        setIsVerified(false);
+        setVerifySuccess(false);
+        setVerifyError(result.message || `Code ${verificationCode} was not found in your bio.`);
       }
-    }, 1800);
+    } catch (err: any) {
+      setIsVerified(false);
+      setVerifySuccess(false);
+      setVerifyError(`Verification check error: ${err?.message || 'Unable to scan bio. Please ensure your handle is correct.'}`);
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -474,11 +498,60 @@ export default function SettingsPage() {
           </div>
 
           {verifySuccess && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 animate-in fade-in">
-              <BadgeCheck className="w-4 h-4 text-emerald-600 fill-emerald-600 shrink-0" />
+            <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs flex items-center gap-2 animate-in fade-in">
+              <BadgeCheck className="w-5 h-5 text-emerald-600 fill-emerald-600 shrink-0" />
               <span>
                 <strong>🎉 Verification Succeeded!</strong> Your bio code matched. Your account now carries the official Verified Blue Badge!
               </span>
+            </div>
+          )}
+
+          {verifyError && (
+            <div className="p-4 bg-rose-50 border border-rose-300 text-rose-900 rounded-xl text-xs space-y-2 animate-in fade-in">
+              <div className="flex items-start gap-2.5">
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-rose-900 text-xs">{verifyError}</p>
+                  <p className="text-[11px] text-rose-700 leading-relaxed">
+                    Make sure your profile is <strong>Public</strong>, add <code className="bg-rose-100 text-rose-900 px-1 py-0.5 rounded font-bold font-mono">{verificationCode}</code> to your bio or channel description, click <strong>Save</strong>, and try again.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Platform selection for verification */}
+          {!isVerified && (
+            <div className="flex items-center gap-2 pt-1 pb-1">
+              <span className="text-xs font-semibold text-gray-700">Scan bio on:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedVerifyPlatform('instagram');
+                  setVerifyError('');
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  selectedVerifyPlatform === 'instagram'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                <span>Instagram</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedVerifyPlatform('youtube');
+                  setVerifyError('');
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  selectedVerifyPlatform === 'youtube'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                <span>YouTube</span>
+              </button>
             </div>
           )}
 
@@ -595,12 +668,12 @@ export default function SettingsPage() {
                   {verifying ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Scanning Bio for Code...</span>
+                      <span>Scanning {selectedVerifyPlatform === 'instagram' ? 'Instagram Bio' : 'YouTube About'}...</span>
                     </>
                   ) : (
                     <>
                       <BadgeCheck className="w-4 h-4" />
-                      <span>Check & Verify Bio Now</span>
+                      <span>Scan & Verify {selectedVerifyPlatform === 'instagram' ? 'Instagram' : 'YouTube'} Bio</span>
                     </>
                   )}
                 </button>
