@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGradHandshake" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#1A181F"/>
+      <stop offset="60%" stop-color="#100F14"/>
+      <stop offset="100%" stop-color="#070709"/>
+    </radialGradient>
+
+    <!-- Creator Arm Gradient (Vibrant Energy Orange) -->
+    <linearGradient id="creatorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA439"/>
+      <stop offset="60%" stop-color="#FF6A00"/>
+      <stop offset="100%" stop-color="#E54E00"/>
+    </linearGradient>
+
+    <!-- Brand Arm Gradient (Polished Titanium / Gold Hue) -->
+    <linearGradient id="brandGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#FED7AA"/>
+      <stop offset="100%" stop-color="#FF8A00"/>
+    </linearGradient>
+
+    <!-- Connection Glow -->
+    <filter id="handshakeGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#FF6A00" flood-opacity="0.45"/>
+    </filter>
+
+    <linearGradient id="skySpark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Squircle Frame -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGradHandshake)" stroke="#26232D" stroke-width="2.5"/>
+
+  <!-- Radial ambient back-glow -->
+  <circle cx="256" cy="270" r="140" fill="#FF6A00" opacity="0.14"/>
+
+  <!-- Handshake W Group -->
+  <g filter="url(#handshakeGlow)">
+    <!-- LEFT ARM & SLEEVE (CREATOR SIDE) -->
+    <!-- Downward diagonal stroke of W -->
+    <path d="M100 150 C100 138 116 130 126 138 L198 250 C204 260 216 262 226 254 L244 240 C252 232 254 220 248 210 L188 136 C180 126 164 128 158 140 L100 150 Z" 
+          fill="url(#creatorGrad)"/>
+
+    <!-- Left Arm Body to Clasp -->
+    <path d="M120 154 L190 320 C198 340 224 346 240 330 L274 294 C284 284 282 268 270 260 L242 242 C232 234 218 236 210 246 L174 290 L136 172 C132 158 116 150 106 160 Z" 
+          fill="url(#creatorGrad)"/>
+
+    <!-- RIGHT ARM & SLEEVE (BRAND SIDE) -->
+    <!-- Upward diagonal stroke of W -->
+    <path d="M412 150 C412 138 396 130 386 138 L314 250 C308 260 296 262 286 254 L268 240 C260 232 258 220 264 210 L324 136 C332 126 348 128 354 140 L412 150 Z" 
+          fill="url(#brandGrad)"/>
+
+    <path d="M392 154 L322 320 C314 340 288 346 272 330 L238 294 C228 284 230 268 242 260 L270 242 C280 234 294 236 302 246 L338 290 L376 172 C380 158 396 150 406 160 Z" 
+          fill="url(#brandGrad)"/>
+
+    <!-- THE HANDSHAKE CLASP (CENTER UNION OF W) -->
+    <!-- Interlocking fingers forming central 'V' peak of 'W' -->
+    <path d="M222 278 C228 268 242 266 252 274 L256 278 L260 274 C270 266 284 268 290 278 C294 286 290 298 282 304 L256 328 L230 304 C222 298 218 286 222 278 Z" 
+          fill="#FFFFFF"/>
+
+    <path d="M236 290 L256 312 L276 290 C280 284 288 284 292 290 C296 296 294 304 288 310 L264 332 C260 336 252 336 248 332 L224 310 C218 304 216 296 220 290 C224 284 232 284 236 290 Z" 
+          fill="url(#creatorGrad)"/>
+
+    <!-- Central Deal Spark / Verified Agreement Node -->
+    <circle cx="256" cy="278" r="8" fill="url(#skySpark)"/>
+    <circle cx="256" cy="278" r="3.5" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Labels Indicating the Two Sides -->
+  <text x="146" y="386" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#FF8A00" letter-spacing="2">CREATOR</text>
+  <text x="256" y="386" font-family="system-ui, sans-serif" font-size="13" font-weight="900" fill="#38BDF8" text-anchor="middle">✕</text>
+  <text x="366" y="386" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#FED7AA" letter-spacing="2" text-anchor="end">BRAND</text>
+
+  <!-- Tagline underneath -->
+  <text x="256" y="424" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#94A3B8" letter-spacing="4" text-anchor="middle">WOVZO COLLAB</text>
+</svg>

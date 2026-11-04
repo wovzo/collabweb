@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141419"/>
+      <stop offset="50%" stop-color="#0E0E12"/>
+      <stop offset="100%" stop-color="#050507"/>
+    </linearGradient>
+
+    <!-- Electric Orange Gradient -->
+    <linearGradient id="solidOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA033"/>
+      <stop offset="50%" stop-color="#FF6A00"/>
+      <stop offset="100%" stop-color="#E04800"/>
+    </linearGradient>
+
+    <!-- White-to-Silver Gradient for Emblem Contrast -->
+    <linearGradient id="silverWhite" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#D4D4D8"/>
+    </linearGradient>
+
+    <!-- Sky Blue Spark -->
+    <linearGradient id="blueGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <!-- Drop Shadow -->
+    <filter id="emblemShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#FF6A00" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- App Icon Squircle Base -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="url(#bgGrad3)" stroke="#22222B" stroke-width="3"/>
+
+  <!-- Geometric Grid Backplate Lines (Subtle Tech Accent) -->
+  <line x1="120" y1="256" x2="392" y2="256" stroke="#23232C" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <line x1="256" y1="120" x2="256" y2="392" stroke="#23232C" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#23232C" stroke-width="1.5" stroke-dasharray="4,8"/>
+
+  <!-- Main Emblem Group -->
+  <g filter="url(#emblemShadow)" transform="translate(0, -6)">
+    <!-- Outer Wing: Left (Creator Wing) -->
+    <path d="M96 172 L164 356 C172 376 198 376 206 356 L242 258 L196 172 L148 172 L120 248 L114 172 Z" 
+          fill="url(#solidOrange)"/>
+
+    <!-- Outer Wing: Right (Brand Wing) -->
+    <path d="M416 172 L348 356 C340 376 314 376 306 356 L270 258 L316 172 L364 172 L392 248 L398 172 Z" 
+          fill="url(#solidOrange)"/>
+
+    <!-- Central Chevron / Growth Arrow Core (The 'W' Convergence) -->
+    <path d="M192 352 L256 182 L320 352 L284 352 L256 276 L228 352 Z" 
+          fill="url(#silverWhite)"/>
+
+    <!-- Central 4-Point Collab Spark Star (The Verified Synergy) -->
+    <g transform="translate(256, 172)">
+      <!-- 4-Point Star Polygon -->
+      <path d="M0 -34 Q0 0 34 0 Q0 0 0 34 Q0 0 -34 0 Q0 0 0 -34 Z" fill="url(#blueGlow)"/>
+      <circle cx="0" cy="0" r="5" fill="#FFFFFF"/>
+    </g>
+  </g>
+
+  <!-- Bottom Wordmark Tag -->
+  <text x="256" y="432" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="900" letter-spacing="8" fill="#FFFFFF" text-anchor="middle" opacity="0.95">WOVZO</text>
+  <text x="256" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="4" fill="#FF6A00" text-anchor="middle">COLLAB</text>
+</svg>

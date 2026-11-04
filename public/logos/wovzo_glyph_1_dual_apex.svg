@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Deep Matte Obsidian Canvas -->
+  <rect width="512" height="512" rx="116" fill="#111113"/>
+
+  <!-- Concept 1: The Continuous Loop 'W' (Airbnb / Upwork Style Minimalist Stroke) -->
+  <!-- A single unbroken mathematical curve linking Creator and Brand -->
+  <path d="M 120 180 
+           C 120 280, 160 350, 204 350 
+           C 244 350, 244 230, 256 230 
+           C 268 230, 268 350, 308 350 
+           C 352 350, 392 280, 392 180" 
+        fill="none" 
+        stroke="#FF6A00" 
+        stroke-width="46" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+
+  <!-- Subtle Central Synergy Dot (The Connection Point) -->
+  <circle cx="256" cy="184" r="16" fill="#FFFFFF"/>
+</svg>

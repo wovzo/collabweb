@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGradAvatars" cx="50%" cy="40%" r="75%">
+      <stop offset="0%" stop-color="#1C1A22"/>
+      <stop offset="60%" stop-color="#111016"/>
+      <stop offset="100%" stop-color="#060608"/>
+    </radialGradient>
+
+    <!-- Creator Orange Gradient -->
+    <linearGradient id="creatorGradAv" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA834"/>
+      <stop offset="50%" stop-color="#FF6A00"/>
+      <stop offset="100%" stop-color="#E54E00"/>
+    </linearGradient>
+
+    <!-- Brand Cyan/Silver Gradient -->
+    <linearGradient id="brandGradAv" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#93C5FD"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+
+    <!-- Center Bridge Glow -->
+    <filter id="bridgeGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#FF6A00" flood-opacity="0.5"/>
+    </filter>
+
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A00"/>
+      <stop offset="100%" stop-color="#FF5500"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Base -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGradAvatars)" stroke="#272430" stroke-width="2.5"/>
+
+  <!-- Subtle Center Aura -->
+  <circle cx="256" cy="270" r="150" fill="#FF6A00" opacity="0.12"/>
+
+  <!-- Avatar Bridge 'W' Composition -->
+  <g filter="url(#bridgeGlow)">
+    
+    <!-- LEFT AVATAR (CREATOR) -->
+    <!-- Head with Creative Spark / Halo -->
+    <circle cx="140" cy="168" r="28" fill="url(#creatorGradAv)"/>
+    <circle cx="140" cy="168" r="16" fill="#111016"/>
+    <!-- Camera Aperture / Play dot in Creator Eye -->
+    <polygon points="135,160 148,168 135,176" fill="#FF8A00"/>
+
+    <!-- Creator Body & Left Stem of W -->
+    <path d="M96 338 C90 354 112 364 124 350 L168 290 C178 276 196 270 212 278 L238 292 C248 298 254 310 250 322 L240 350 C234 366 212 366 206 350 L188 304 L146 348 C132 362 108 358 100 340 Z" 
+          fill="url(#creatorGradAv)"/>
+
+    <!-- Creator Left Arm Reaching Center -->
+    <path d="M140 210 C110 210 96 240 96 270 L146 340 C154 350 170 348 176 336 L216 250 C222 236 240 232 252 242 L256 246" 
+          stroke="url(#creatorGradAv)" stroke-width="20" stroke-linecap="round" fill="none"/>
+
+
+    <!-- RIGHT AVATAR (BRAND / BUSINESS) -->
+    <!-- Head with Brand Target / Crown Ring -->
+    <circle cx="372" cy="168" r="28" fill="url(#brandGradAv)"/>
+    <circle cx="372" cy="168" r="16" fill="#111016"/>
+    <!-- Business Diamond in Brand Head -->
+    <rect x="366" y="162" width="12" height="12" rx="2" transform="rotate(45 372 168)" fill="#38BDF8"/>
+
+    <!-- Brand Body & Right Stem of W -->
+    <path d="M416 338 C422 354 400 364 388 350 L344 290 C334 276 316 270 300 278 L274 292 C264 298 258 310 262 322 L272 350 C278 366 300 366 306 350 L324 304 L366 348 C380 362 404 358 412 340 Z" 
+          fill="url(#brandGradAv)"/>
+
+    <!-- Brand Right Arm Reaching Center -->
+    <path d="M372 210 C402 210 416 240 416 270 L366 340 C358 350 342 348 336 336 L296 250 C290 236 272 232 260 242 L256 246" 
+          stroke="url(#brandGradAv)" stroke-width="20" stroke-linecap="round" fill="none"/>
+
+
+    <!-- CENTRAL DEAL BRIDGE / ESCROW SHIELD (The 'W' Peak Connection) -->
+    <!-- Where both arms meet and lock together -->
+    <g transform="translate(256, 246)">
+      <!-- Verified Shield Badge -->
+      <path d="M0 -18 L18 -8 L18 12 C18 24 0 34 0 34 C0 34 -18 24 -18 12 L-18 -8 Z" fill="url(#shieldGrad)" stroke="#FFFFFF" stroke-width="2.5"/>
+      <!-- Checkmark in Shield -->
+      <path d="M-6 8 L-1 14 L8 3" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+
+    <!-- Connection Light Beam uniting both sides -->
+    <path d="M220 246 Q256 230 292 246" stroke="#38BDF8" stroke-width="3" fill="none" opacity="0.8"/>
+  </g>
+
+  <!-- Subtitle Explaining Creator <-> Brand Connection -->
+  <text x="140" y="416" font-family="system-ui, sans-serif" font-size="12" font-weight="800" fill="#FFA439" text-anchor="middle" letter-spacing="1">CREATOR</text>
+  <text x="256" y="416" font-family="system-ui, sans-serif" font-size="12" font-weight="900" fill="#38BDF8" text-anchor="middle">🤝</text>
+  <text x="372" y="416" font-family="system-ui, sans-serif" font-size="12" font-weight="800" fill="#93C5FD" text-anchor="middle" letter-spacing="1">BRAND</text>
+  <text x="256" y="442" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#64748B" text-anchor="middle" letter-spacing="4">WOVZO COLLABORATION</text>
+</svg>

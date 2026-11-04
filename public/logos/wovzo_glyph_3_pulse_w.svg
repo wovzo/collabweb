@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Deep Matte Obsidian Canvas -->
+  <rect width="512" height="512" rx="116" fill="#111113"/>
+
+  <!-- Concept 3: The Seamless Flow 'W' (Threads / Upwork Style) -->
+  <!-- Two stylized symmetrical loops connecting in an unbroken ribbon -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left Loop (Creator) -->
+    <path d="M 140 180 
+             L 190 320 
+             C 202 352, 238 352, 250 320 
+             L 280 236" 
+          stroke="#FF6A00" 
+          stroke-width="48"/>
+
+    <!-- Right Loop (Brand) -->
+    <path d="M 372 180 
+             L 322 320 
+             C 310 352, 274 352, 262 320 
+             L 232 236" 
+          stroke="#FFFFFF" 
+          stroke-width="48"/>
+
+    <!-- Central Bridge - Overlapping with crisp mask effect -->
+    <path d="M 232 236 C 244 206, 268 206, 280 236" 
+          stroke="#FF6A00" 
+          stroke-width="48"/>
+  </g>
+
+  <!-- Clean Minimalist Wordmark Accent -->
+  <text x="256" y="420" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="10" fill="#FFFFFF" text-anchor="middle">WOVZO</text>
+</svg>

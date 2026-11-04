@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGradPlayMega" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#1E1C1A"/>
+      <stop offset="60%" stop-color="#121110"/>
+      <stop offset="100%" stop-color="#080808"/>
+    </radialGradient>
+
+    <!-- Creator Play Gradient (Orange to Crimson) -->
+    <linearGradient id="playOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA834"/>
+      <stop offset="60%" stop-color="#FF6A00"/>
+      <stop offset="100%" stop-color="#E54E00"/>
+    </linearGradient>
+
+    <!-- Brand Megaphone Gradient (Gold to White) -->
+    <linearGradient id="megaGold" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#FED7AA"/>
+      <stop offset="100%" stop-color="#FF9D2E"/>
+    </linearGradient>
+
+    <!-- Sky Blue Sync Beam -->
+    <linearGradient id="syncBeam" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <!-- Glow -->
+    <filter id="collabGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#FF6A00" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- App Icon Squircle Base -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGradPlayMega)" stroke="#2B2620" stroke-width="2.5"/>
+
+  <!-- Subtle Center Atmosphere Glow -->
+  <circle cx="256" cy="256" r="150" fill="#FF6A00" opacity="0.12"/>
+
+  <!-- Play + Megaphone Composition -->
+  <g filter="url(#collabGlow)">
+    
+    <!-- LEFT SIDE: CREATOR PLAY BUTTON INTEGRATED INTO 'W' -->
+    <!-- The outer left stem of the 'W' -->
+    <path d="M104 160 C98 146 112 134 124 142 L188 190 C198 198 202 212 198 224 L158 336 C152 352 130 354 122 340 L88 270 C82 258 84 244 92 234 L104 220 Z" 
+          fill="url(#playOrange)"/>
+
+    <!-- The Creator Play Triangle pointing toward Brand -->
+    <path d="M150 196 C150 182 166 174 178 182 L248 232 C260 240 260 258 248 266 L178 316 C166 324 150 316 150 302 Z" 
+          fill="url(#playOrange)"/>
+    <!-- Play Inner Core Cutout for contrast -->
+    <path d="M174 222 L220 249 L174 276 Z" fill="#FFFFFF" opacity="0.95"/>
+
+
+    <!-- RIGHT SIDE: BRAND MEGAPHONE INTEGRATED INTO 'W' -->
+    <!-- The outer right stem of the 'W' -->
+    <path d="M408 160 C414 146 400 134 388 142 L324 190 C314 198 310 212 314 224 L354 336 C360 352 382 354 390 340 L424 270 C430 258 428 244 420 234 L408 220 Z" 
+          fill="url(#megaGold)"/>
+
+    <!-- Megaphone Cone pointing toward Creator -->
+    <path d="M362 196 C362 182 346 174 334 182 L264 232 C252 240 252 258 264 266 L334 316 C346 324 362 316 362 302 Z" 
+          fill="url(#megaGold)"/>
+    <!-- Megaphone Broadcast Handle / Base -->
+    <rect x="362" y="234" width="22" height="30" rx="6" fill="#FFFFFF"/>
+    <!-- Broadcast Waves -->
+    <path d="M394 226 C402 238 402 258 394 270" stroke="#FF6A00" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M406 218 C418 236 418 262 406 280" stroke="#FF6A00" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+    <!-- THE CENTRAL CONNECTION SYNC SPARK ('W' CONVERGENCE) -->
+    <!-- Where Play and Megaphone Meet -->
+    <circle cx="256" cy="249" r="16" fill="url(#syncBeam)"/>
+    <polygon points="256,225 264,244 285,249 264,254 256,273 248,254 227,249 248,244" fill="#FFFFFF"/>
+    <circle cx="256" cy="249" r="4" fill="#0284C7"/>
+
+    <!-- Bottom Bridge Support forming the 'W' Base -->
+    <path d="M198 332 L256 282 L314 332 C324 340 318 358 304 358 L208 358 C194 358 188 340 198 332 Z" 
+          fill="url(#playOrange)"/>
+  </g>
+
+  <!-- Explanatory Subtext for Brand Identity -->
+  <g transform="translate(0, 412)">
+    <circle cx="160" cy="0" r="4" fill="#FF6A00"/>
+    <text x="174" y="4" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#FFA439">CREATIVE CONTENT</text>
+
+    <text x="256" y="5" font-family="system-ui, sans-serif" font-size="12" font-weight="900" fill="#38BDF8" text-anchor="middle">⚡</text>
+
+    <circle cx="276" cy="0" r="4" fill="#FED7AA"/>
+    <text x="290" y="4" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#FED7AA">BRAND CAMPAIGN</text>
+  </g>
+</svg>

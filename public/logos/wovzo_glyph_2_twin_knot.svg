@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Deep Matte Obsidian Canvas -->
+  <rect width="512" height="512" rx="116" fill="#111113"/>
+
+  <!-- Concept 2: The Two Intersecting 2D Wings (Swiss Modernist Pentagram Style) -->
+  <!-- Left Wing (Creator) -->
+  <path d="M 124 172 
+           L 204 344 
+           C 214 364, 240 366, 252 346 
+           L 302 260 
+           L 274 214 
+           L 234 284 
+           L 182 172 Z" 
+        fill="#FF6A00"/>
+
+  <!-- Right Wing (Brand) - Symmetrical & Seamlessly Merging -->
+  <path d="M 388 172 
+           L 308 344 
+           C 298 364, 272 366, 260 346 
+           L 210 260 
+           L 238 214 
+           L 278 284 
+           L 330 172 Z" 
+        fill="#FFFFFF"/>
+
+  <!-- Center Overlap Node (Collab Diamond Accent) -->
+  <polygon points="256,242 274,270 256,298 238,270" fill="#FF8A00"/>
+</svg>

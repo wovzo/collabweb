@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGlow2" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1F1A17"/>
+      <stop offset="60%" stop-color="#121214"/>
+      <stop offset="100%" stop-color="#08080A"/>
+    </radialGradient>
+
+    <!-- Main Orange Fluid Ribbon -->
+    <linearGradient id="ribbonOrange" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#FFA439"/>
+      <stop offset="35%" stop-color="#FF6A00"/>
+      <stop offset="70%" stop-color="#E54E00"/>
+      <stop offset="100%" stop-color="#9C2700"/>
+    </linearGradient>
+
+    <!-- Under-fold Shading (For 3D Infinity Overlap) -->
+    <linearGradient id="ribbonDarkFold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#881B00"/>
+      <stop offset="100%" stop-color="#FF6A00"/>
+    </linearGradient>
+
+    <!-- Highlight Sheen -->
+    <linearGradient id="sheenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Glow Effect -->
+    <filter id="neonBloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- App Icon Squircle Frame -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGlow2)" stroke="#2B2622" stroke-width="2.5"/>
+
+  <!-- Subtle Ambient Orange Center Bulb -->
+  <circle cx="256" cy="256" r="140" fill="#FF6A00" opacity="0.18" filter="url(#neonBloom)"/>
+
+  <!-- 3D Infinity 'W' Composition -->
+  <g transform="translate(0, 10)">
+    <!-- Back Loop Layer (Creates 3D Depth) -->
+    <path d="M148 290 C120 250 120 180 172 160 C214 144 242 196 256 230 C270 196 298 144 340 160 C392 180 392 250 364 290 L318 360 C296 394 256 394 256 394 C256 394 216 394 194 360 Z" 
+          fill="url(#ribbonDarkFold)" opacity="0.85"/>
+
+    <!-- Left Infinity Wing (Creator) -->
+    <path d="M110 200 C100 270 160 360 216 360 C250 360 268 330 256 290 C242 245 208 190 168 180 C138 172 114 182 110 200 Z" 
+          fill="url(#ribbonOrange)"/>
+
+    <!-- Right Infinity Wing (Brand) -->
+    <path d="M402 200 C412 270 352 360 296 360 C262 360 244 330 256 290 C270 245 304 190 344 180 C374 172 398 182 402 200 Z" 
+          fill="url(#ribbonOrange)"/>
+
+    <!-- Main Front 'W' Bridge Swirl (Dynamic Connection Flow) -->
+    <path d="M128 176 C166 160 212 216 236 270 C246 292 266 292 276 270 C300 216 346 160 384 176 C416 190 422 230 406 268 L354 362 C338 390 302 396 280 370 L256 338 L232 370 C210 396 174 390 158 362 L106 268 C90 230 96 190 128 176 Z" 
+          fill="url(#ribbonOrange)" filter="url(#neonBloom)"/>
+
+    <!-- Top Gloss Highlight Over the Ribbon -->
+    <path d="M136 182 C168 168 206 216 230 265 C234 256 244 232 256 212 C268 232 278 256 282 265 C306 216 344 168 376 182 C392 190 402 208 404 226 C396 206 378 186 358 186 C326 186 286 236 274 258 C266 272 246 272 238 258 C226 236 186 186 154 186 C134 186 116 206 108 226 C110 208 120 190 136 182 Z" 
+          fill="url(#sheenGrad)"/>
+
+    <!-- Center Connection Pulse (Energy Glow) -->
+    <circle cx="256" cy="318" r="8" fill="#FFFFFF"/>
+    <circle cx="256" cy="318" r="16" fill="#38BDF8" opacity="0.6" filter="url(#neonBloom)"/>
+  </g>
+</svg>
