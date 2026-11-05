@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from "@/lib/supabase"
 import { User } from '@supabase/supabase-js'
+import { Eye, EyeOff, Crop, ZoomIn, ZoomOut, CheckCircle2, X } from 'lucide-react'
 
 const INDUSTRIES = [
   'Fashion & Apparel',
@@ -38,8 +39,17 @@ export default function SettingsPage() {
   const [location, setLocation] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Image Crop State
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -47,33 +57,44 @@ export default function SettingsPage() {
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const MAX_DIM = 400
-        let width = img.width
-        let height = img.height
-        if (width > height) {
-          if (width > MAX_DIM) {
-            height = Math.round((height * MAX_DIM) / width)
-            width = MAX_DIM
-          }
-        } else {
-          if (height > MAX_DIM) {
-            width = Math.round((width * MAX_DIM) / height)
-            height = MAX_DIM
-          }
-        }
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx?.drawImage(img, 0, 0, width, height)
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75)
-        setAvatarUrl(compressedDataUrl)
-      }
-      img.src = event.target?.result as string
+      setRawImageSrc(event.target?.result as string)
+      setZoomLevel(1)
+      setPanOffset({ x: 0, y: 0 })
+      setCropModalOpen(true)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
     reader.readAsDataURL(file)
+  }
+
+  const applyCroppedImage = () => {
+    if (!rawImageSrc) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const CROP_SIZE = 400
+      canvas.width = CROP_SIZE
+      canvas.height = CROP_SIZE
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, CROP_SIZE, CROP_SIZE)
+
+      const baseScale = Math.max(CROP_SIZE / img.width, CROP_SIZE / img.height)
+      const currentScale = baseScale * zoomLevel
+      const renderW = img.width * currentScale
+      const renderH = img.height * currentScale
+      
+      const drawX = (CROP_SIZE - renderW) / 2 + panOffset.x
+      const drawY = (CROP_SIZE - renderH) / 2 + panOffset.y
+
+      ctx.drawImage(img, drawX, drawY, renderW, renderH)
+      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.82)
+      setAvatarUrl(croppedDataUrl)
+      setCropModalOpen(false)
+      setRawImageSrc(null)
+    }
+    img.src = rawImageSrc
   }
 
   useEffect(() => {
@@ -337,25 +358,144 @@ export default function SettingsPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">New Password</label>
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Leave blank to keep current password"
-            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 py-2.5 border" 
-          />
+          <div className="mt-1 relative">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Leave blank to keep current password"
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-sm px-3.5 pr-10 py-2.5 border" 
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer focus:outline-none"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         <div className="pt-6 border-t border-gray-100 flex items-center justify-end">
           <button 
             type="submit" 
             disabled={loading}
-            className="flex justify-center py-2.5 px-6 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] disabled:opacity-50 transition"
+            className="flex justify-center py-2.5 px-6 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] disabled:opacity-50 transition cursor-pointer"
           >
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>
+
+      {/* Interactive Brand Logo / Photo Cropper Modal */}
+      {cropModalOpen && rawImageSrc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crop className="w-5 h-5 text-[#FF6A00]" />
+                <h3 className="font-bold text-gray-900 text-base">Crop Logo / Profile Picture</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setCropModalOpen(false); setRawImageSrc(null); }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col items-center">
+              {/* Cropper Viewport */}
+              <div 
+                className="relative w-64 h-64 bg-slate-900 rounded-2xl overflow-hidden cursor-move border-2 border-[#FF6A00]/40 shadow-inner select-none"
+                onMouseDown={(e) => {
+                  setIsDragging(true);
+                  setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+                }}
+                onMouseMove={(e) => {
+                  if (!isDragging) return;
+                  setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+                }}
+                onMouseUp={() => setIsDragging(false)}
+                onMouseLeave={() => setIsDragging(false)}
+                onTouchStart={(e) => {
+                  if (e.touches.length === 1) {
+                    setIsDragging(true);
+                    setDragStart({ x: e.touches[0].clientX - panOffset.x, y: e.touches[0].clientY - panOffset.y });
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (!isDragging || e.touches.length !== 1) return;
+                  setPanOffset({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+                }}
+                onTouchEnd={() => setIsDragging(false)}
+              >
+                {/* Image being cropped */}
+                <div 
+                  className="w-full h-full flex items-center justify-center transition-transform duration-75"
+                  style={{
+                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
+                  }}
+                >
+                  <img 
+                    src={rawImageSrc} 
+                    alt="Crop preview" 
+                    className="max-w-none pointer-events-none"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+
+                {/* Circular Profile Overlay Guide */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="w-52 h-52 rounded-full border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"></div>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="w-full mt-5 space-y-3">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span className="flex items-center gap-1 font-medium"><ZoomOut className="w-3.5 h-3.5" /> Zoom Out</span>
+                  <span className="font-mono font-bold text-gray-700">{Math.round(zoomLevel * 100)}%</span>
+                  <span className="flex items-center gap-1 font-medium"><ZoomIn className="w-3.5 h-3.5" /> Zoom In</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="3" 
+                  step="0.05"
+                  value={zoomLevel}
+                  onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                  className="w-full accent-[#FF6A00] cursor-pointer"
+                />
+                <p className="text-[11px] text-gray-400 text-center">
+                  Drag the logo/image to adjust position inside the frame.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setCropModalOpen(false); setRawImageSrc(null); }}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 transition text-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={applyCroppedImage}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#FF6A00] hover:bg-[#E55A00] font-semibold text-white transition text-sm flex items-center justify-center gap-2 shadow-sm shadow-orange-200 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Crop & Apply</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
