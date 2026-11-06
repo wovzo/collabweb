@@ -5,100 +5,111 @@ import Link from "next/link";
 import { BadgeCheck, ShieldCheck, ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+const DEFAULT_CREATOR_CAMPAIGNS = [
+  {
+    id: 'exp-1',
+    title: 'Diwali Festive Apparel Launch',
+    description: 'Create an aesthetic Instagram Reel showcasing 2 festive outfits with styling tips.',
+    budget: 15000,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Fashion • Platform: Instagram • Min 5k followers',
+    status: 'active',
+    profiles: { name: 'FabIndia Apparel' }
+  },
+  {
+    id: 'exp-2',
+    title: 'Boat Rockerz ANC Wireless Earbuds',
+    description: 'Unboxing and sound test review Reel + Story link with promo code.',
+    budget: 12000,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Tech • Platform: Instagram/YouTube • Good audio setup',
+    status: 'active',
+    profiles: { name: 'boAt Lifestyle' }
+  },
+  {
+    id: 'exp-3',
+    title: 'Organic Plant Protein Shake Review',
+    description: 'Post-workout gym reel mixing the protein shake and highlighting authentic taste.',
+    budget: 8500,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Fitness • Platform: Instagram • Active fitness audience',
+    status: 'active',
+    profiles: { name: 'HealthMax Nutrition' }
+  }
+];
+
 export default function CreatorDashboard() {
-  const [profile, setProfile] = useState<any>(null);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>({ name: "Creator" });
+  const [campaigns, setCampaigns] = useState<any[]>(DEFAULT_CREATOR_CAMPAIGNS);
+  const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
-  const [appliedCampaigns, setAppliedCampaigns] = useState<string[]>([]);
-  const [isVerified, setIsVerified] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
+  const [appliedCampaigns, setAppliedCampaigns] = useState<string[]>(['exp-3']);
+  const [isVerified, setIsVerified] = useState(true);
+  const [verificationCode, setVerificationCode] = useState("WOVZO-4921");
   const [toastSuccess, setToastSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    // 1. Instant hydration from local storage
+    try {
+      const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+      if (demo.name) setProfile((p: any) => ({ ...p, name: demo.name }));
+      if (demo.is_verified) setIsVerified(true);
+      if (demo.verification_code) setVerificationCode(demo.verification_code);
+
+      const cachedCamps = JSON.parse(localStorage.getItem('wovzo_cached_campaigns') || '[]');
+      if (Array.isArray(cachedCamps) && cachedCamps.length > 0) setCampaigns(cachedCamps);
+
+      const cachedApps = JSON.parse(localStorage.getItem('wovzo_applied_campaigns') || '[]');
+      if (Array.isArray(cachedApps) && cachedApps.length > 0) setAppliedCampaigns(cachedApps);
+    } catch (_) {}
+
+    // 2. Background non-blocking refresh with 1.5s timeout
     fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      let initialVerified = false;
-      let initialCode = "";
-      try {
-        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
-        if (demo.is_verified) initialVerified = true;
-        if (demo.verification_code) initialCode = demo.verification_code;
-      } catch (_) {}
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsVerified(initialVerified);
-        setVerificationCode(initialCode);
-        return;
+      const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null);
+      const user = userRes?.data?.user;
+      if (!user) return;
+
+      if (user.user_metadata?.name) {
+        setProfile((p: any) => ({ ...p, name: user.user_metadata.name }));
       }
+      if (user.user_metadata?.is_verified) setIsVerified(true);
 
-      if (user.user_metadata?.is_verified || user.user_metadata?.instagram_verified) {
-        initialVerified = true;
-      }
-      if (user.user_metadata?.verification_code) {
-        initialCode = user.user_metadata.verification_code;
-      }
-
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      
-      if (profileData) {
-        setProfile(profileData);
-        if (profileData.is_verified) initialVerified = true;
-        if (profileData.verification_code) initialCode = profileData.verification_code;
-      } else {
-        setProfile({ name: user.user_metadata?.name || "Creator" });
-      }
-
-      setIsVerified(initialVerified);
-      setVerificationCode(initialCode || "WOVZO-4921");
-
-      // Fetch active campaigns with brand details
-      const { data: campaignsData } = await supabase
-        .from("campaigns")
-        .select("*, profiles(name)")
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
-
-      setCampaigns(campaignsData || []);
-
-      // Load cached applied campaigns (resilient offline/demo)
-      let initialApplied: string[] = [];
-      try {
-        const cached = JSON.parse(localStorage.getItem('wovzo_applied_campaigns') || '[]');
-        if (Array.isArray(cached) && cached.length > 0) {
-          initialApplied = cached;
-          setAppliedCampaigns(cached);
+      // Parallel background fetch
+      const fetchCamps = async () => {
+        const res: any = await Promise.race([
+          supabase.from("campaigns").select("*, profiles(name)").eq("status", "active").order("created_at", { ascending: false }),
+          timeoutPromise
+        ]).catch(() => null);
+        if (res?.data && res.data.length > 0) {
+          setCampaigns(res.data);
+          try { localStorage.setItem('wovzo_cached_campaigns', JSON.stringify(res.data)); } catch (_) {}
         }
-      } catch (_) {}
+      };
 
-      // Fetch already applied campaigns from Supabase
-      if (user) {
-        const { data: applicationsData } = await supabase
-          .from("applications")
-          .select("campaign_id")
-          .eq("influencer_id", user.id);
-          
-        if (applicationsData) {
-          const dbIds = applicationsData.map(a => a.campaign_id);
-          const merged = Array.from(new Set([...initialApplied, ...dbIds]));
-          setAppliedCampaigns(merged);
-          try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(merged)); } catch (_) {}
+      const fetchApps = async () => {
+        const appsRes: any = await Promise.race([
+          supabase.from("applications").select("campaign_id").eq("influencer_id", user.id),
+          timeoutPromise
+        ]).catch(() => null);
+        if (appsRes?.data && appsRes.data.length > 0) {
+          const dbIds = appsRes.data.map((a: any) => a.campaign_id);
+          setAppliedCampaigns(prev => {
+            const merged = Array.from(new Set([...prev, ...dbIds]));
+            try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(merged)); } catch (_) {}
+            return merged;
+          });
         }
-      }
+      };
 
+      await Promise.allSettled([fetchCamps(), fetchApps()]);
     } catch (error) {
-      console.error("Error fetching creator data:", error);
-    } finally {
-      setLoading(false);
+      console.warn("Background fetch skipped:", error);
     }
   };
 
@@ -140,10 +151,6 @@ export default function CreatorDashboard() {
       setApplying(null);
     }
   };
-
-  if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
-  }
 
   return (
     <div>

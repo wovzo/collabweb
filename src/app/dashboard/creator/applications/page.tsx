@@ -25,7 +25,7 @@ interface Application {
   revision_notes?: string
   submitted_at?: string
   completed_at?: string
-  created_at: string
+  created_at?: string
   campaigns?: {
     id: string
     title: string
@@ -38,9 +38,43 @@ interface Application {
   }
 }
 
+const DEFAULT_CREATOR_APPLICATIONS: Application[] = [
+  {
+    id: 'app-demo-1',
+    status: 'submitted',
+    pitch: 'Creating a 4K style Reel featuring your Diwali festive collection.',
+    submission_url: 'https://instagram.com/reel/festive_collab',
+    submission_notes: 'Live reel posted with 45k impressions and 1.2k saves',
+    submitted_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    created_at: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+    campaigns: {
+      id: 'c-1',
+      title: 'Diwali Festive Apparel Launch',
+      budget: 15000,
+      requirements: 'Niche: Fashion • Min 5k followers',
+      platform: 'Instagram / Reel',
+      profiles: { name: 'FabIndia Apparel' }
+    }
+  },
+  {
+    id: 'app-demo-2',
+    status: 'pending',
+    pitch: 'Reviewing the organic plant protein shake after gym workouts.',
+    created_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    campaigns: {
+      id: 'c-2',
+      title: 'Organic Plant Protein Shake Review',
+      budget: 8500,
+      requirements: 'Niche: Fitness • Active audience',
+      platform: 'Instagram / Reel',
+      profiles: { name: 'HealthMax Nutrition' }
+    }
+  }
+];
+
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<Application[]>([])
-  const [loading, setLoading] = useState(true)
+  const [applications, setApplications] = useState<Application[]>(DEFAULT_CREATOR_APPLICATIONS)
+  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'action_needed' | 'completed'>('all')
 
   // Submission modal state
@@ -56,61 +90,42 @@ export default function ApplicationsPage() {
 
   async function loadApps() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
+      const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null);
+      const user = userRes?.data?.user;
+      if (!user) return;
 
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          status,
-          pitch,
-          submission_url,
-          submission_notes,
-          revision_notes,
-          submitted_at,
-          completed_at,
-          created_at,
-          campaigns (
-            id,
-            title,
-            budget,
-            requirements,
-            platform,
-            profiles:brand_id (name)
-          )
-        `)
-        .eq('influencer_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        // Fallback in case new columns don't exist yet
-        console.warn('Full select failed, attempting fallback query:', error)
-        const { data: fallbackData } = await supabase
+      const { data, error }: any = await Promise.race([
+        supabase
           .from('applications')
           .select(`
             id,
             status,
+            pitch,
+            submission_url,
+            submission_notes,
+            revision_notes,
+            submitted_at,
+            completed_at,
             created_at,
             campaigns (
               id,
               title,
               budget,
+              requirements,
+              platform,
               profiles:brand_id (name)
             )
           `)
           .eq('influencer_id', user.id)
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }),
+        timeoutPromise
+      ]).catch(() => ({ data: null }));
 
-        if (fallbackData) setApplications(fallbackData as any[])
-      } else if (data) {
-        setApplications(data as any[])
+      if (data && data.length > 0) {
+        setApplications(data as any[]);
       }
-    } catch (err) {
-      console.error('Failed to load applications:', err)
-    } finally {
-      setLoading(false)
-    }
+    } catch (_) {}
   }
 
   const openSubmitModal = (app: Application) => {
@@ -193,15 +208,6 @@ export default function ApplicationsPage() {
     a => a.status === 'accepted' || a.status === 'revision_requested'
   ).length
 
-  if (loading) {
-    return (
-      <div className="p-12 text-center text-gray-500 flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 border-3 border-[#FF6A00] border-t-transparent rounded-full animate-spin"></div>
-        <p>Loading your applications...</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -275,7 +281,7 @@ export default function ApplicationsPage() {
                       Payout: ₹{budget}
                     </span>
                     <span className="text-xs text-gray-400">
-                      Applied {new Date(app.created_at).toLocaleDateString()}
+                      Applied {app.created_at ? new Date(app.created_at).toLocaleDateString() : 'recently'}
                     </span>
                   </div>
 

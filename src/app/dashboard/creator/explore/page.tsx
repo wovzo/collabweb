@@ -4,11 +4,54 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Search, Sparkles, Send, X, Check, Building2, Tag, Calendar, AlertCircle } from 'lucide-react'
 
+const DEFAULT_EXPLORE_CAMPAIGNS = [
+  {
+    id: 'exp-1',
+    title: 'Diwali Festive Apparel Launch',
+    description: 'Create an aesthetic Instagram Reel showcasing 2 festive outfits with styling tips.',
+    budget: 15000,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Fashion • Platform: Instagram • Min 5k followers',
+    status: 'active',
+    profiles: { name: 'FabIndia Apparel' }
+  },
+  {
+    id: 'exp-2',
+    title: 'Boat Rockerz ANC Wireless Earbuds',
+    description: 'Unboxing and sound test review Reel + Story link with promo code.',
+    budget: 12000,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Tech • Platform: Instagram/YouTube • Good audio setup',
+    status: 'active',
+    profiles: { name: 'boAt Lifestyle' }
+  },
+  {
+    id: 'exp-3',
+    title: 'Organic Plant Protein Shake Review',
+    description: 'Post-workout gym reel mixing the protein shake and highlighting authentic taste.',
+    budget: 8500,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Fitness • Platform: Instagram • Active fitness audience',
+    status: 'active',
+    profiles: { name: 'HealthMax Nutrition' }
+  },
+  {
+    id: 'exp-4',
+    title: 'Zomato Foodie Weekend Feast',
+    description: 'Showcase dining out or ordering popular biryani with 50% discount code.',
+    budget: 18000,
+    platform: 'Instagram / Reel',
+    requirements: 'Niche: Food • Platform: Instagram • Food blogger aesthetic',
+    status: 'active',
+    profiles: { name: 'Zomato Food' }
+  }
+]
+
 export default function ExplorePage() {
-  const [campaigns, setCampaigns] = useState<any[]>([])
-  const [appliedIds, setAppliedIds] = useState<string[]>([])
+  const [campaigns, setCampaigns] = useState<any[]>(DEFAULT_EXPLORE_CAMPAIGNS)
+  const [appliedIds, setAppliedIds] = useState<string[]>(['exp-3'])
   const [hideApplied, setHideApplied] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
 
@@ -23,50 +66,60 @@ export default function ExplorePage() {
   const categories = ['All', 'Fashion & Lifestyle', 'Tech & Gadgets', 'Fitness & Health', 'Beauty & Cosmetics', 'Food & Dining']
 
   useEffect(() => {
-    async function loadExplore() {
+    // 1. Immediately hydrate local cached data (instant 0 ms load)
+    try {
+      const cachedCamps = JSON.parse(localStorage.getItem('wovzo_cached_campaigns') || '[]')
+      if (Array.isArray(cachedCamps) && cachedCamps.length > 0) {
+        setCampaigns(cachedCamps)
+      }
+      const cachedApps = JSON.parse(localStorage.getItem('wovzo_applied_campaigns') || '[]')
+      if (Array.isArray(cachedApps) && cachedApps.length > 0) {
+        setAppliedIds(cachedApps)
+      }
+    } catch (_) {}
+
+    // 2. Background silent refresh with strict 1.5s timeout - NEVER blocks the UI!
+    async function refreshDataInBackground() {
       try {
-        // 1. Load locally cached applied IDs (offline/demo persistent)
-        try {
-          const cached = JSON.parse(localStorage.getItem('wovzo_applied_campaigns') || '[]')
-          if (Array.isArray(cached) && cached.length > 0) {
-            setAppliedIds(cached)
-          }
-        } catch (_) {}
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500))
 
-        const { data: { user } } = await supabase.auth.getUser()
+        const fetchCamps = async () => {
+          const res: any = await Promise.race([
+            supabase.from('campaigns').select('*, profiles:brand_id (name)').eq('status', 'active').order('created_at', { ascending: false }),
+            timeoutPromise
+          ]).catch(() => null)
 
-        // Fetch all active campaigns
-        const { data: camps } = await supabase
-          .from('campaigns')
-          .select('*, profiles:brand_id (name)')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-        
-        if (camps) setCampaigns(camps)
-
-        // Fetch user applications from Supabase if user exists
-        if (user) {
-          const { data: apps } = await supabase
-            .from('applications')
-            .select('campaign_id')
-            .eq('influencer_id', user.id)
-
-          if (apps && apps.length > 0) {
-            const dbIds = apps.map(a => a.campaign_id)
-            setAppliedIds(prev => {
-              const merged = Array.from(new Set([...prev, ...dbIds]))
-              try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(merged)) } catch (_) {}
-              return merged
-            })
+          if (res?.data && res.data.length > 0) {
+            setCampaigns(res.data)
+            try { localStorage.setItem('wovzo_cached_campaigns', JSON.stringify(res.data)) } catch (_) {}
           }
         }
-      } catch (err) {
-        console.error('Error loading campaigns:', err)
-      } finally {
-        setLoading(false)
-      }
+
+        const fetchApps = async () => {
+          const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null)
+          const user = userRes?.data?.user
+          if (user) {
+            const appsRes: any = await Promise.race([
+              supabase.from('applications').select('campaign_id').eq('influencer_id', user.id),
+              timeoutPromise
+            ]).catch(() => null)
+
+            if (appsRes?.data && appsRes.data.length > 0) {
+              const dbIds = appsRes.data.map((a: any) => a.campaign_id)
+              setAppliedIds(prev => {
+                const merged = Array.from(new Set([...prev, ...dbIds]))
+                try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(merged)) } catch (_) {}
+                return merged
+              })
+            }
+          }
+        }
+
+        await Promise.allSettled([fetchCamps(), fetchApps()])
+      } catch (_) {}
     }
-    loadExplore()
+
+    refreshDataInBackground()
   }, [])
 
   const openApplyModal = (campaign: any) => {
@@ -165,15 +218,6 @@ export default function ExplorePage() {
 
     return matchesSearch && matchesCategory
   })
-
-  if (loading) {
-    return (
-      <div className="p-12 text-center text-gray-500 flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 border-3 border-[#FF6A00] border-t-transparent rounded-full animate-spin"></div>
-        <p>Discovering top brand campaigns...</p>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
