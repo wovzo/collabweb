@@ -87,6 +87,11 @@ export default function ExplorePage() {
       return
     }
 
+    if (!pitch.trim()) {
+      setErrorMsg('⚠️ Proposal box cannot be empty! Please write your pitch or ideas before submitting.')
+      return
+    }
+
     setApplying(true)
     setErrorMsg('')
 
@@ -369,9 +374,14 @@ export default function ExplorePage() {
             {!successMsg && (
               <form onSubmit={handleApplySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-1">
-                    Your Pitch / Collaboration Proposal (Recommended)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Your Pitch / Collaboration Proposal <span className="text-red-500 font-bold">*</span>
+                    </label>
+                    <span className="text-[11px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                      Required
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-500 mb-2">
                     Tell the brand why you are a great fit, your follower demographics, or how you plan to present their product.
                   </p>
@@ -379,23 +389,36 @@ export default function ExplorePage() {
                     rows={4}
                     placeholder="e.g. Hi! I have 45K engaged followers in the fashion niche. I'll shoot a 4K aesthetic Reel showcasing the product with clear CTA, and deliver within 3 days."
                     value={pitch}
-                    onChange={e => setPitch(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6A00] focus:border-transparent transition"
+                    onChange={e => {
+                      setPitch(e.target.value)
+                      if (errorMsg) setErrorMsg('')
+                    }}
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none transition ${
+                      errorMsg 
+                        ? 'border-red-400 bg-red-50/20 ring-2 ring-red-200' 
+                        : 'border-gray-300 focus:ring-2 focus:ring-[#FF6A00] focus:border-transparent'
+                    }`}
                   />
+                  {errorMsg && (
+                    <p className="text-xs font-semibold text-red-600 mt-1.5 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {errorMsg}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setSelectedCampaign(null)}
-                    className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={applying}
-                    className="bg-[#FF6A00] hover:bg-[#E55A00] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 disabled:opacity-50 shadow-md shadow-orange-500/20"
+                    className="bg-[#FF6A00] hover:bg-[#E55A00] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 disabled:opacity-50 shadow-md shadow-orange-500/20 cursor-pointer"
                   >
                     {applying ? 'Submitting...' : 'Submit Proposal'}
                     <Send className="w-4 h-4" />

@@ -106,6 +106,13 @@ export default function CreatorDashboard() {
       alert("You have already applied to this campaign!");
       return;
     }
+
+    const pitch = window.prompt("Enter your collaboration proposal / pitch for this brand (Required):");
+    if (pitch === null) return;
+    if (!pitch.trim()) {
+      alert("⚠️ Proposal box cannot be empty! Please provide your pitch before submitting.");
+      return;
+    }
     
     setApplying(campaignId);
     try {
@@ -113,6 +120,7 @@ export default function CreatorDashboard() {
         const { error } = await supabase.from("applications").insert({
           campaign_id: campaignId,
           influencer_id: profile.id,
+          pitch: pitch.trim(),
         });
 
         if (error && error.code !== '23505') {
