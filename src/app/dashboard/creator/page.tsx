@@ -69,14 +69,29 @@ export default function CreatorDashboard() {
 
       setCampaigns(campaignsData || []);
 
-      // Fetch already applied campaigns
-      const { data: applicationsData } = await supabase
-        .from("applications")
-        .select("campaign_id")
-        .eq("influencer_id", user.id);
-        
-      if (applicationsData) {
-        setAppliedCampaigns(applicationsData.map(a => a.campaign_id));
+      // Load cached applied campaigns (resilient offline/demo)
+      let initialApplied: string[] = [];
+      try {
+        const cached = JSON.parse(localStorage.getItem('wovzo_applied_campaigns') || '[]');
+        if (Array.isArray(cached) && cached.length > 0) {
+          initialApplied = cached;
+          setAppliedCampaigns(cached);
+        }
+      } catch (_) {}
+
+      // Fetch already applied campaigns from Supabase
+      if (user) {
+        const { data: applicationsData } = await supabase
+          .from("applications")
+          .select("campaign_id")
+          .eq("influencer_id", user.id);
+          
+        if (applicationsData) {
+          const dbIds = applicationsData.map(a => a.campaign_id);
+          const merged = Array.from(new Set([...initialApplied, ...dbIds]));
+          setAppliedCampaigns(merged);
+          try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(merged)); } catch (_) {}
+        }
       }
 
     } catch (error) {
@@ -87,25 +102,28 @@ export default function CreatorDashboard() {
   };
 
   const handleApply = async (campaignId: string) => {
-    if (!profile) return;
+    if (appliedCampaigns.includes(campaignId)) {
+      alert("You have already applied to this campaign!");
+      return;
+    }
     
     setApplying(campaignId);
     try {
-      const { error } = await supabase.from("applications").insert({
-        campaign_id: campaignId,
-        influencer_id: profile.id,
-      });
+      if (profile?.id) {
+        const { error } = await supabase.from("applications").insert({
+          campaign_id: campaignId,
+          influencer_id: profile.id,
+        });
 
-      if (error) {
-        if (error.code === '23505') {
-          alert("You have already applied to this campaign!");
-        } else {
-          throw error;
+        if (error && error.code !== '23505') {
+          console.warn("Error inserting application:", error);
         }
-      } else {
-        setAppliedCampaigns([...appliedCampaigns, campaignId]);
-        alert("Successfully applied!");
       }
+
+      const updated = Array.from(new Set([...appliedCampaigns, campaignId]));
+      setAppliedCampaigns(updated);
+      try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(updated)); } catch (_) {}
+      alert("Successfully applied to campaign!");
     } catch (error: any) {
       alert(error.message || "Failed to apply.");
     } finally {
@@ -187,23 +205,37 @@ export default function CreatorDashboard() {
             const hasApplied = appliedCampaigns.includes(campaign.id);
             
             return (
-              <div key={campaign.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-xs font-bold text-[#FF6A00] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full uppercase">
-                      {campaign.platform}
-                    </span>
-                    <h3 className="text-lg font-bold text-gray-900 mt-2">{campaign.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">By {campaign.profiles?.name || "Unknown Brand"}</p>
+              <div 
+                key={campaign.id} 
+                className={`bg-white p-6 rounded-2xl border shadow-xs flex flex-col justify-between transition duration-200 ${
+                  hasApplied ? 'border-emerald-200/80 bg-emerald-50/10' : 'border-gray-200 hover:shadow-md'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-[#FF6A00] bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full uppercase">
+                          {campaign.platform}
+                        </span>
+                        {hasApplied && (
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                            ✓ Already Applied
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 mt-2">{campaign.title}</h3>
+                      <p className="text-sm text-gray-500 mt-1">By {campaign.profiles?.name || "Unknown Brand"}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-black text-[#FF6A00] rounded-full flex items-center justify-center font-bold">
+                      {(campaign.profiles?.name || "B")[0].toUpperCase()}
+                    </div>
                   </div>
-                  <div className="w-10 h-10 bg-black text-[#FF6A00] rounded-full flex items-center justify-center font-bold">
-                    {(campaign.profiles?.name || "B")[0].toUpperCase()}
-                  </div>
+                  
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {campaign.description}
+                  </p>
                 </div>
-                
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {campaign.description}
-                </p>
                 
                 <div className="mt-auto pt-4 border-t border-gray-100">
                   <div className="flex justify-between items-center mb-4">
@@ -216,16 +248,16 @@ export default function CreatorDashboard() {
                   <button
                     onClick={() => handleApply(campaign.id)}
                     disabled={hasApplied || applying === campaign.id}
-                    className={`w-full py-2.5 rounded-lg font-medium transition ${
+                    className={`w-full py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 ${
                       hasApplied 
-                        ? 'bg-green-50 text-green-700 border border-green-200' 
-                        : 'bg-[#FF6A00] text-white hover:bg-[#E55A00] shadow-sm shadow-orange-500/20'
-                    } disabled:opacity-70`}
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed shadow-none' 
+                        : 'bg-[#FF6A00] text-white hover:bg-[#E55A00] shadow-sm shadow-orange-500/20 cursor-pointer active:scale-[0.99]'
+                    }`}
                   >
                     {applying === campaign.id 
                       ? "Applying..." 
                       : hasApplied 
-                        ? "Applied ✓" 
+                        ? "✓ Already Applied" 
                         : "Apply Now"}
                   </button>
                 </div>

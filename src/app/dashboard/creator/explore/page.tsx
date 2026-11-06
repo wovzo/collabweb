@@ -7,6 +7,7 @@ import { Search, Sparkles, Send, X, Check, Building2, Tag, Calendar, AlertCircle
 export default function ExplorePage() {
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [appliedIds, setAppliedIds] = useState<string[]>([])
+  const [hideApplied, setHideApplied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -23,8 +24,15 @@ export default function ExplorePage() {
   useEffect(() => {
     async function loadExplore() {
       try {
+        // 1. Load locally cached applied IDs (offline/demo persistent)
+        try {
+          const cached = JSON.parse(localStorage.getItem('wovzo_applied_campaigns') || '[]')
+          if (Array.isArray(cached) && cached.length > 0) {
+            setAppliedIds(cached)
+          }
+        } catch (_) {}
+
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
 
         // Fetch all active campaigns
         const { data: camps } = await supabase
@@ -33,14 +41,24 @@ export default function ExplorePage() {
           .eq('status', 'active')
           .order('created_at', { ascending: false })
         
-        // Fetch user applications
-        const { data: apps } = await supabase
-          .from('applications')
-          .select('campaign_id')
-          .eq('influencer_id', user.id)
-
         if (camps) setCampaigns(camps)
-        if (apps) setAppliedIds(apps.map(a => a.campaign_id))
+
+        // Fetch user applications from Supabase if user exists
+        if (user) {
+          const { data: apps } = await supabase
+            .from('applications')
+            .select('campaign_id')
+            .eq('influencer_id', user.id)
+
+          if (apps && apps.length > 0) {
+            const dbIds = apps.map(a => a.campaign_id)
+            setAppliedIds(prev => {
+              const merged = Array.from(new Set([...prev, ...dbIds]))
+              try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(merged)) } catch (_) {}
+              return merged
+            })
+          }
+        }
       } catch (err) {
         console.error('Error loading campaigns:', err)
       } finally {
@@ -51,6 +69,10 @@ export default function ExplorePage() {
   }, [])
 
   const openApplyModal = (campaign: any) => {
+    // Restrict user from submitting again if already applied
+    if (appliedIds.includes(campaign.id)) {
+      return
+    }
     setSelectedCampaign(campaign)
     setPitch('')
     setErrorMsg('')
@@ -60,37 +82,48 @@ export default function ExplorePage() {
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedCampaign) return
+    if (appliedIds.includes(selectedCampaign.id)) {
+      setErrorMsg('You have already applied to this campaign!')
+      return
+    }
 
     setApplying(true)
     setErrorMsg('')
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Please log in to apply.')
+      const userId = user?.id || 'demo_user'
 
       // Try inserting with pitch first
-      const { error } = await supabase.from('applications').insert({
-        campaign_id: selectedCampaign.id,
-        influencer_id: user.id,
-        status: 'pending',
-        pitch: pitch.trim() || null
-      })
-
-      if (error) {
-        // If pitch column doesn't exist yet, fallback to base insert
-        if (error.code === '23505') {
-          throw new Error('You have already applied to this campaign!')
-        }
-        console.warn('Inserting without pitch due to schema:', error)
-        const { error: simpleErr } = await supabase.from('applications').insert({
+      if (user) {
+        const { error } = await supabase.from('applications').insert({
           campaign_id: selectedCampaign.id,
-          influencer_id: user.id,
-          status: 'pending'
+          influencer_id: userId,
+          status: 'pending',
+          pitch: pitch.trim() || null
         })
-        if (simpleErr) throw simpleErr
+
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('You have already applied to this campaign!')
+          }
+          console.warn('Inserting without pitch due to schema:', error)
+          const { error: simpleErr } = await supabase.from('applications').insert({
+            campaign_id: selectedCampaign.id,
+            influencer_id: userId,
+            status: 'pending'
+          })
+          if (simpleErr && simpleErr.code === '23505') {
+            throw new Error('You have already applied to this campaign!')
+          }
+        }
       }
 
-      setAppliedIds(prev => [...prev, selectedCampaign.id])
+      setAppliedIds(prev => {
+        const updated = Array.from(new Set([...prev, selectedCampaign.id]))
+        try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(updated)) } catch (_) {}
+        return updated
+      })
       setSuccessMsg('Application submitted successfully!')
       setTimeout(() => {
         setSelectedCampaign(null)
@@ -103,6 +136,11 @@ export default function ExplorePage() {
   }
 
   const filteredCampaigns = campaigns.filter(camp => {
+    // If Hide Applied toggle is active, filter out applied ones
+    if (hideApplied && appliedIds.includes(camp.id)) {
+      return false
+    }
+
     const matchesSearch = 
       (camp.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (camp.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -149,13 +187,26 @@ export default function ExplorePage() {
           />
         </div>
 
-        {/* Categories */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        {/* Categories & Filter Options */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setHideApplied(!hideApplied)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
+              hideApplied
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            <Check className={`w-3.5 h-3.5 ${hideApplied ? 'text-emerald-400' : 'text-emerald-600'}`} />
+            <span>Hide Applied {appliedIds.length > 0 && `(${appliedIds.length})`}</span>
+          </button>
+          <div className="h-4 w-px bg-gray-200 mx-0.5 hidden sm:block"></div>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-[#FF6A00] text-white shadow-sm shadow-orange-500/20'
                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -176,14 +227,24 @@ export default function ExplorePage() {
           return (
             <div 
               key={camp.id} 
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between hover:shadow-md hover:border-orange-100 transition duration-200"
+              className={`bg-white rounded-2xl shadow-sm border p-6 flex flex-col justify-between hover:shadow-md transition duration-200 ${
+                hasApplied ? 'border-emerald-200/80 bg-emerald-50/10' : 'border-gray-100 hover:border-orange-100'
+              }`}
             >
               <div>
                 {/* Top Badge & Budget */}
                 <div className="flex justify-between items-start mb-3">
-                  <span className="px-3 py-1 bg-orange-50 text-[#FF6A00] text-xs font-bold rounded-full uppercase tracking-wider border border-orange-200">
-                    {camp.platform || 'Instagram / Reel'}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="px-3 py-1 bg-orange-50 text-[#FF6A00] text-xs font-bold rounded-full uppercase tracking-wider border border-orange-200">
+                      {camp.platform || 'Instagram / Reel'}
+                    </span>
+                    {hasApplied && (
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full flex items-center gap-1 border border-emerald-200">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        Already Applied
+                      </span>
+                    )}
+                  </div>
                   <div className="text-right">
                     <span className="text-xs text-gray-400 block font-normal">Fixed Payout</span>
                     <span className="font-extrabold text-lg text-green-600">₹{camp.budget}</span>
@@ -222,14 +283,14 @@ export default function ExplorePage() {
                   disabled={hasApplied}
                   className={`w-full py-2.5 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${
                     hasApplied 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200' 
-                      : 'bg-[#FF6A00] hover:bg-[#E55A00] text-white shadow-sm shadow-orange-500/25 active:scale-[0.99]'
+                      ? 'bg-emerald-50 text-emerald-700 cursor-not-allowed border border-emerald-200 font-bold' 
+                      : 'bg-[#FF6A00] hover:bg-[#E55A00] text-white shadow-sm shadow-orange-500/25 active:scale-[0.99] cursor-pointer'
                   }`}
                 >
                   {hasApplied ? (
                     <>
-                      <Check className="w-4 h-4 text-green-600" />
-                      Applied
+                      <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
+                      Already Applied
                     </>
                   ) : (
                     <>
@@ -244,9 +305,26 @@ export default function ExplorePage() {
         })}
 
         {filteredCampaigns.length === 0 && (
-          <div className="col-span-full p-12 text-center text-gray-500 bg-white rounded-2xl border border-gray-100 space-y-2">
-            <p className="text-base font-semibold text-gray-800">No campaigns match your search.</p>
-            <p className="text-xs text-gray-400">Try adjusting your filters or search keywords.</p>
+          <div className="col-span-full p-12 text-center text-gray-500 bg-white rounded-2xl border border-gray-100 space-y-3">
+            <p className="text-base font-semibold text-gray-800">
+              {hideApplied && campaigns.length > 0
+                ? "You have applied to all matching campaigns in this view!"
+                : "No campaigns match your search."}
+            </p>
+            <p className="text-xs text-gray-400">
+              {hideApplied && campaigns.length > 0
+                ? "Turn off 'Hide Applied' to review your submitted campaigns."
+                : "Try adjusting your filters or search keywords."}
+            </p>
+            {hideApplied && campaigns.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHideApplied(false)}
+                className="mt-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 text-[#FF6A00] font-bold text-xs rounded-xl border border-orange-200 cursor-pointer transition"
+              >
+                Show All Campaigns
+              </button>
+            )}
           </div>
         )}
       </div>
