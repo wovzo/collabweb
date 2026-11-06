@@ -13,6 +13,7 @@ export default function CreatorDashboard() {
   const [appliedCampaigns, setAppliedCampaigns] = useState<string[]>([]);
   const [isVerified, setIsVerified] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [toastSuccess, setToastSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -131,7 +132,8 @@ export default function CreatorDashboard() {
       const updated = Array.from(new Set([...appliedCampaigns, campaignId]));
       setAppliedCampaigns(updated);
       try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(updated)); } catch (_) {}
-      alert("Successfully applied to campaign!");
+      setToastSuccess("Proposal submitted successfully! Your application is now under review by the brand.");
+      setTimeout(() => setToastSuccess(null), 5000);
     } catch (error: any) {
       alert(error.message || "Failed to apply.");
     } finally {
@@ -145,6 +147,25 @@ export default function CreatorDashboard() {
 
   return (
     <div>
+      {/* Floating Success Toast Notification */}
+      {toastSuccess && (
+        <div className="fixed top-5 right-5 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl shadow-emerald-900/30 border border-emerald-400 flex items-start gap-3 animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
+            <BadgeCheck className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-sm text-white">Proposal Submitted Successfully! 🎉</h4>
+            <p className="text-xs text-emerald-100 mt-0.5 leading-relaxed">{toastSuccess}</p>
+          </div>
+          <button
+            onClick={() => setToastSuccess(null)}
+            className="p-1 hover:bg-white/20 rounded-lg text-white/80 hover:text-white transition cursor-pointer shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">

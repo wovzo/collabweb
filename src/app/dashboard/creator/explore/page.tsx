@@ -18,6 +18,7 @@ export default function ExplorePage() {
   const [applying, setApplying] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [toastSuccess, setToastSuccess] = useState<string | null>(null)
 
   const categories = ['All', 'Fashion & Lifestyle', 'Tech & Gadgets', 'Fitness & Health', 'Beauty & Cosmetics', 'Food & Dining']
 
@@ -129,10 +130,16 @@ export default function ExplorePage() {
         try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(updated)) } catch (_) {}
         return updated
       })
-      setSuccessMsg('Application submitted successfully!')
+
+      // Immediately close the box and throw success message
+      const campTitle = selectedCampaign.title
+      setSelectedCampaign(null)
+      setPitch('')
+      setErrorMsg('')
+      setToastSuccess(`Application submitted successfully for "${campTitle}"! Your proposal is now under review.`)
       setTimeout(() => {
-        setSelectedCampaign(null)
-      }, 1200)
+        setToastSuccess(null)
+      }, 5000)
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to submit application.')
     } finally {
@@ -170,6 +177,25 @@ export default function ExplorePage() {
 
   return (
     <div className="space-y-6">
+      {/* Floating Success Toast Notification */}
+      {toastSuccess && (
+        <div className="fixed top-5 right-5 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl shadow-emerald-900/30 border border-emerald-400 flex items-start gap-3 animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
+            <Check className="w-5 h-5 text-white stroke-[3]" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-sm text-white">Proposal Submitted Successfully! 🎉</h4>
+            <p className="text-xs text-emerald-100 mt-0.5 leading-relaxed">{toastSuccess}</p>
+          </div>
+          <button
+            onClick={() => setToastSuccess(null)}
+            className="p-1 hover:bg-white/20 rounded-lg text-white/80 hover:text-white transition cursor-pointer shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Explore Brand Campaigns</h1>
