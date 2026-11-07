@@ -311,17 +311,15 @@ export default function SettingsPage() {
                   </svg>
                   Upload Logo from Device / Gallery
                 </button>
-                <span className="text-xs text-gray-400">or paste logo URL below</span>
-              </div>
-
-              <div>
-                <input
-                  type="text"
-                  value={avatarUrl.startsWith('data:image/') ? '[Custom Logo Uploaded]' : avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="Paste brand logo URL (https://...)"
-                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] text-xs px-3.5 py-2 border bg-white"
-                />
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl('')}
+                    className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded transition"
+                  >
+                    Remove Logo
+                  </button>
+                )}
               </div>
 
               {/* Quick Presets */}
