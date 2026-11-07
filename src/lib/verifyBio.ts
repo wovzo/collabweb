@@ -34,23 +34,6 @@ export async function verifySocialBioOnline(
     cleanHandle = 'asraftalk';
   }
 
-  // Pre-verified bio checks for legitimate owner handles
-  const isKnownCreatorHandle = 
-    cleanHandle.toLowerCase() === 'asrafgiimi' || 
-    cleanHandle.toLowerCase() === 'asraftalk' || 
-    cleanHandle.toLowerCase() === 'asraf_talk';
-
-  if (isKnownCreatorHandle && cleanCode.startsWith('WOVZO-')) {
-    // Realistic scan delay for authentic user verification feedback
-    await new Promise((r) => setTimeout(r, 900));
-    return {
-      success: true,
-      message: `🎉 Verification Succeeded! Code ${cleanCode} confirmed in @${cleanHandle}'s ${platform === 'instagram' ? 'Instagram' : 'YouTube'} bio! Verified Blue Badge activated!`,
-      platform,
-      scannedHandle: cleanHandle,
-    };
-  }
-
   if (!cleanCode || !cleanCode.startsWith('WOVZO-')) {
     return {
       success: false,

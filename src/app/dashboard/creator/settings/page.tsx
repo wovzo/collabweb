@@ -116,6 +116,8 @@ export default function SettingsPage() {
     async function loadUser() {
       let initialVerified = false;
       let initialCode = "WOVZO-2401";
+      let currentIg = '';
+      let currentVerifiedIg = '';
 
       // 1. Instant hydration from localStorage
       try {
@@ -138,8 +140,8 @@ export default function SettingsPage() {
         const currentNiche = demo.niche || regAccount.niche || 'Fashion & Lifestyle';
         if (currentNiche) setNiche(currentNiche);
 
-        let currentVerifiedIg = (demo.verified_instagram || regAccount.verified_instagram || '').trim();
-        const currentIg = demo.instagram || regAccount.instagram || (cleanEmail === 'asrafgiimi@gmail.com' ? '@asrafgiimi' : '');
+        currentVerifiedIg = (demo.verified_instagram || regAccount.verified_instagram || '').trim();
+        currentIg = demo.instagram || regAccount.instagram || (cleanEmail === 'asrafgiimi@gmail.com' ? '@asrafgiimi' : '');
         if (currentIg) setInstagram(currentIg);
 
         if ((demo.is_verified || regAccount.is_verified) && !currentVerifiedIg && currentIg) {
@@ -177,60 +179,80 @@ export default function SettingsPage() {
         console.warn('Local storage load notice:', e);
       }
 
-      // 2. Fetch from Supabase (if online)
-      try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
-        const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null);
-        const user = userRes?.data?.user;
-        if (user) {
-          setUser(user);
-          if (user.email) setEmail(user.email);
-          const meta = user.user_metadata || {};
-          if (meta.name) setName(meta.name);
-          if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
-          if (meta.bio) setBio(meta.bio);
-          if (meta.niche) setNiche(meta.niche);
-          if (meta.instagram) setInstagram(meta.instagram);
-          if (meta.youtube) setYoutube(meta.youtube);
-          if (meta.location) setLocation(meta.location);
-          if (meta.phone) setPhone(meta.phone);
-          if (meta.verification_code && meta.verification_code.startsWith('WOVZO-')) {
-            initialCode = meta.verification_code;
-          }
-          if (meta.is_verified || meta.instagram_verified) initialVerified = true;
+        let resolvedIg = currentIg;
+        let resolvedVerIg = currentVerifiedIg;
 
-          try {
-            const { data: profileRow } = await supabase
-              .from('profiles')
-              .select('name, role, is_verified, verification_code, instagram, youtube, bio, avatar_url')
-              .eq('id', user.id)
-              .single();
-            if (profileRow) {
-              if (profileRow.name && profileRow.name !== 'User') setName(profileRow.name);
-              if (profileRow.role) setRole(profileRow.role);
-              if (profileRow.bio) setBio(profileRow.bio);
-              if (profileRow.avatar_url) setAvatarUrl(profileRow.avatar_url);
-              if (profileRow.instagram) setInstagram(profileRow.instagram);
-              if (profileRow.youtube) setYoutube(profileRow.youtube);
-              if (profileRow.is_verified) initialVerified = true;
-              if (profileRow.verification_code && profileRow.verification_code.startsWith('WOVZO-')) {
-                initialCode = profileRow.verification_code;
-              }
-            }
-          } catch (_) {}
-        }
-      } catch (err) {
-        console.warn('Load user notice:', err);
-      } finally {
-        if (!initialCode || !initialCode.startsWith('WOVZO-')) {
-          initialCode = "WOVZO-2401";
-        }
+        // 2. Fetch from Supabase (if online)
         try {
-          localStorage.setItem('wovzo_creator_bio_code', initialCode);
-        } catch (_) {}
-        setVerificationCode(initialCode);
-        setIsVerified(initialVerified);
-      }
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
+          const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null);
+          const user = userRes?.data?.user;
+          if (user) {
+            setUser(user);
+            if (user.email) setEmail(user.email);
+            const meta = user.user_metadata || {};
+            if (meta.name) setName(meta.name);
+            if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
+            if (meta.bio) setBio(meta.bio);
+            if (meta.niche) setNiche(meta.niche);
+            if (meta.instagram) {
+              resolvedIg = meta.instagram;
+              setInstagram(meta.instagram);
+            }
+            if (meta.verified_instagram) {
+              resolvedVerIg = meta.verified_instagram;
+              setVerifiedInstagram(meta.verified_instagram);
+            }
+            if (meta.youtube) setYoutube(meta.youtube);
+            if (meta.location) setLocation(meta.location);
+            if (meta.phone) setPhone(meta.phone);
+            if (meta.verification_code && meta.verification_code.startsWith('WOVZO-')) {
+              initialCode = meta.verification_code;
+            }
+            if (meta.is_verified || meta.instagram_verified) initialVerified = true;
+
+            try {
+              const { data: profileRow } = await supabase
+                .from('profiles')
+                .select('name, role, is_verified, verification_code, instagram, youtube, bio, avatar_url')
+                .eq('id', user.id)
+                .single();
+              if (profileRow) {
+                if (profileRow.name && profileRow.name !== 'User') setName(profileRow.name);
+                if (profileRow.role) setRole(profileRow.role);
+                if (profileRow.bio) setBio(profileRow.bio);
+                if (profileRow.avatar_url) setAvatarUrl(profileRow.avatar_url);
+                if (profileRow.instagram) {
+                  resolvedIg = profileRow.instagram;
+                  setInstagram(profileRow.instagram);
+                }
+                if (profileRow.youtube) setYoutube(profileRow.youtube);
+                if (profileRow.is_verified) initialVerified = true;
+                if (profileRow.verification_code && profileRow.verification_code.startsWith('WOVZO-')) {
+                  initialCode = profileRow.verification_code;
+                }
+              }
+            } catch (_) {}
+          }
+        } catch (err) {
+          console.warn('Load user notice:', err);
+        } finally {
+          if (!initialCode || !initialCode.startsWith('WOVZO-')) {
+            initialCode = "WOVZO-2401";
+          }
+          try {
+            localStorage.setItem('wovzo_creator_bio_code', initialCode);
+          } catch (_) {}
+          setVerificationCode(initialCode);
+
+          const cleanCur = (resolvedIg || '').toLowerCase().replace(/^@/, '').trim();
+          const cleanVer = (resolvedVerIg || '').toLowerCase().replace(/^@/, '').trim();
+          if (initialVerified && cleanVer.length > 0 && cleanCur === cleanVer) {
+            setIsVerified(true);
+          } else {
+            setIsVerified(false);
+          }
+        }
     }
     loadUser();
   }, []);
@@ -409,6 +431,23 @@ export default function SettingsPage() {
         reg[cleanEmail].is_verified = false;
         reg[cleanEmail].verified_instagram = '';
         localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+      }
+
+      if (user) {
+        supabase.auth.updateUser({
+          data: {
+            is_verified: false,
+            instagram_verified: false,
+            verified_instagram: '',
+          }
+        }).catch(() => {});
+        (async () => {
+          try {
+            await supabase.from('profiles').update({
+              is_verified: false,
+            }).eq('id', user.id);
+          } catch (_) {}
+        })();
       }
     } catch (_) {}
   };
