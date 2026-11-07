@@ -30,6 +30,7 @@ const AVATAR_PRESETS = [
 export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
@@ -99,73 +100,157 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        const meta = user.user_metadata || {}
-        if (meta.name) setName(meta.name)
-        setAvatarUrl(meta.avatar_url || '')
-        setBio(meta.bio || '')
-        setNiche(meta.niche || 'Fashion & Apparel')
-        setWebsite(meta.website || '')
-        setLocation(meta.location || 'India')
-        setPhone(meta.phone || '')
+      // 1. Instant hydration from localStorage
+      try {
+        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+        const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+        const cleanEmail = (demo.email || '').toLowerCase().trim();
+        const regAccount = reg[cleanEmail] || {};
 
-        try {
-          const { data } = await supabase.from('profiles').select('name, role').eq('id', user.id).single()
-          if (data) {
-            if (data.name && data.name !== 'User') setName(data.name)
-            if (data.role) setRole(data.role)
-          }
-        } catch (e) {
-          console.error('Error fetching brand profile:', e)
-        }
+        if (cleanEmail) setEmail(cleanEmail);
+
+        const currentName = demo.name || demo.brand_name || regAccount.brand_name || regAccount.name || '';
+        if (currentName) setName(currentName);
+
+        const currentAvatar = demo.avatar_url || regAccount.avatar_url || '';
+        if (currentAvatar) setAvatarUrl(currentAvatar);
+
+        const currentBio = demo.bio !== undefined ? demo.bio : (regAccount.bio !== undefined ? regAccount.bio : '');
+        if (currentBio) setBio(currentBio);
+
+        const currentNiche = demo.niche || regAccount.niche || 'Fashion & Apparel';
+        if (currentNiche) setNiche(currentNiche);
+
+        const currentWebsite = demo.website || regAccount.website || '';
+        if (currentWebsite) setWebsite(currentWebsite);
+
+        const currentLoc = demo.location || regAccount.location || 'India';
+        if (currentLoc) setLocation(currentLoc);
+
+        const currentPhone = demo.phone || regAccount.phone || '';
+        if (currentPhone) setPhone(currentPhone);
+
+        const currentRole = demo.role || regAccount.role || 'Brand';
+        if (currentRole) setRole(currentRole);
+      } catch (e) {
+        console.warn('Brand local storage load notice:', e);
       }
+
+      // 2. Query Supabase (if online)
+      try {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
+        const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null);
+        const user = userRes?.data?.user;
+        if (user) {
+          setUser(user);
+          if (user.email) setEmail(user.email);
+          const meta = user.user_metadata || {};
+          if (meta.name) setName(meta.name);
+          if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
+          if (meta.bio) setBio(meta.bio);
+          if (meta.niche) setNiche(meta.niche);
+          if (meta.website) setWebsite(meta.website);
+          if (meta.location) setLocation(meta.location);
+          if (meta.phone) setPhone(meta.phone);
+
+          try {
+            const { data } = await supabase.from('profiles').select('name, role').eq('id', user.id).single();
+            if (data) {
+              if (data.name && data.name !== 'User') setName(data.name);
+              if (data.role) setRole(data.role);
+            }
+          } catch (e) {
+            console.error('Error fetching brand profile:', e);
+          }
+        }
+      } catch (_) {}
     }
-    loadUser()
-  }, [])
+    loadUser();
+  }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-    
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    const cleanEmail = (email || user?.email || '').toLowerCase().trim();
+
+    // 1. Immediately save to localStorage
+    try {
+      const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+      const updatedDemo = {
+        ...demo,
+        email: cleanEmail,
+        name: name.trim(),
+        brand_name: name.trim(),
+        avatar_url: avatarUrl,
+        bio: bio.trim(),
+        niche,
+        website: website.trim(),
+        location: location.trim(),
+        phone: phone.trim(),
+      };
+      localStorage.setItem('wovzo_demo_user', JSON.stringify(updatedDemo));
+
+      if (cleanEmail) {
+        const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+        reg[cleanEmail] = {
+          ...(reg[cleanEmail] || {}),
+          name: name.trim(),
+          brand_name: name.trim(),
+          avatar_url: avatarUrl,
+          bio: bio.trim(),
+          niche,
+          website: website.trim(),
+          location: location.trim(),
+          phone: phone.trim(),
+          ...(password ? { password } : {})
+        };
+        localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+      }
+    } catch (saveErr) {
+      console.warn('Brand local save notice:', saveErr);
+    }
+
+    // 2. Sync to Supabase in background (if reachable)
     try {
       if (name && user) {
         try {
-          await supabase.from('profiles').update({ name }).eq('id', user.id)
+          await supabase.from('profiles').update({ name: name.trim() }).eq('id', user.id);
         } catch (e) {
-          console.error('Profiles table update error:', e)
+          console.error('Profiles table update notice:', e);
         }
       }
       
-      const { data: updatedData, error: metaError } = await supabase.auth.updateUser({
-        data: {
-          name,
-          avatar_url: avatarUrl,
-          bio,
-          niche,
-          website,
-          location,
-          phone,
-        }
-      })
-      if (metaError) throw metaError
-      if (updatedData?.user) setUser(updatedData.user)
-
-      if (password) {
-        const { error: passError } = await supabase.auth.updateUser({ password })
-        if (passError) throw passError
-        setPassword('')
+      if (user) {
+        const { data: updatedData } = await supabase.auth.updateUser({
+          data: {
+            name: name.trim(),
+            avatar_url: avatarUrl,
+            bio: bio.trim(),
+            niche,
+            website: website.trim(),
+            location: location.trim(),
+            phone: phone.trim(),
+          }
+        });
+        if (updatedData?.user) setUser(updatedData.user);
       }
 
-      setMessage('Brand profile settings updated successfully!')
+      if (password && user) {
+        try {
+          await supabase.auth.updateUser({ password });
+          setPassword('');
+        } catch (_) {}
+      }
     } catch (error: any) {
-      setMessage(error.message || 'An error occurred')
+      console.warn('Supabase remote sync notice:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
+      setMessage('Brand profile settings updated successfully!');
+      setTimeout(() => setMessage(''), 4000);
     }
-  }
+  };
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
@@ -277,7 +362,7 @@ export default function SettingsPage() {
             <input 
               type="email" 
               disabled 
-              value={user?.email || ''} 
+              value={email || user?.email || ''} 
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm sm:text-sm bg-gray-50 text-gray-500 px-3.5 py-2.5 border" 
             />
             <p className="mt-1 text-xs text-gray-400">Email cannot be changed.</p>

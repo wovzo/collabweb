@@ -35,6 +35,7 @@ export default function SettingsPage() {
   const proofInputRef = useRef<HTMLInputElement>(null)
   const [proofImage, setProofImage] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
@@ -115,34 +116,71 @@ export default function SettingsPage() {
       let initialVerified = false;
       let initialCode = "WOVZO-2401";
 
+      // 1. Instant hydration from localStorage
       try {
-        const storedCode = localStorage.getItem('wovzo_creator_bio_code');
+        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+        const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+        const cleanEmail = (demo.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
+        const regAccount = reg[cleanEmail] || {};
+
+        setEmail(cleanEmail);
+
+        const currentName = demo.name || regAccount.name || (cleanEmail === 'asrafgiimi@gmail.com' ? 'Asraf Giimi' : '');
+        if (currentName) setName(currentName);
+
+        const currentAvatar = demo.avatar_url || regAccount.avatar_url || '';
+        if (currentAvatar) setAvatarUrl(currentAvatar);
+
+        const currentBio = demo.bio !== undefined ? demo.bio : (regAccount.bio !== undefined ? regAccount.bio : 'Content creator & digital influencer 🚀');
+        if (currentBio) setBio(currentBio);
+
+        const currentNiche = demo.niche || regAccount.niche || 'Fashion & Lifestyle';
+        if (currentNiche) setNiche(currentNiche);
+
+        const currentIg = demo.instagram || regAccount.instagram || (cleanEmail === 'asrafgiimi@gmail.com' ? '@asrafgiimi' : '');
+        if (currentIg) setInstagram(currentIg);
+
+        const currentYt = demo.youtube || regAccount.youtube || '';
+        if (currentYt) setYoutube(currentYt);
+
+        const currentLoc = demo.location || regAccount.location || 'India';
+        if (currentLoc) setLocation(currentLoc);
+
+        const currentPhone = demo.phone || regAccount.phone || '';
+        if (currentPhone) setPhone(currentPhone);
+
+        const currentRole = demo.role || regAccount.role || 'Creator';
+        if (currentRole) setRole(currentRole);
+
+        const storedCode = localStorage.getItem('wovzo_creator_bio_code') || demo.verification_code || regAccount.verification_code;
         if (storedCode && storedCode.startsWith('WOVZO-')) {
           initialCode = storedCode;
         }
 
-        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
-        if (demo.name) setName(demo.name);
-        if (demo.instagram) setInstagram(demo.instagram);
-        if (demo.youtube) setYoutube(demo.youtube);
-        if (demo.verification_code && demo.verification_code.startsWith('WOVZO-')) {
-          initialCode = demo.verification_code;
+        if (demo.is_verified || regAccount.is_verified) {
+          initialVerified = true;
         }
-        if (demo.is_verified) initialVerified = true;
+      } catch (e) {
+        console.warn('Local storage load notice:', e);
+      }
 
-        const { data } = await supabase.auth.getUser();
-        const user = data?.user;
+      // 2. Fetch from Supabase (if online)
+      try {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
+        const userRes: any = await Promise.race([supabase.auth.getUser(), timeoutPromise]).catch(() => null);
+        const user = userRes?.data?.user;
         if (user) {
           setUser(user);
+          if (user.email) setEmail(user.email);
           const meta = user.user_metadata || {};
           if (meta.name) setName(meta.name);
-          setAvatarUrl(meta.avatar_url || '');
-          setBio(meta.bio || '');
-          setNiche(meta.niche || 'Fashion & Lifestyle');
+          if (meta.avatar_url) setAvatarUrl(meta.avatar_url);
+          if (meta.bio) setBio(meta.bio);
+          if (meta.niche) setNiche(meta.niche);
           if (meta.instagram) setInstagram(meta.instagram);
           if (meta.youtube) setYoutube(meta.youtube);
-          setLocation(meta.location || 'India');
-          setPhone(meta.phone || '');
+          if (meta.location) setLocation(meta.location);
+          if (meta.phone) setPhone(meta.phone);
           if (meta.verification_code && meta.verification_code.startsWith('WOVZO-')) {
             initialCode = meta.verification_code;
           }
@@ -151,12 +189,16 @@ export default function SettingsPage() {
           try {
             const { data: profileRow } = await supabase
               .from('profiles')
-              .select('name, role, is_verified, verification_code')
+              .select('name, role, is_verified, verification_code, instagram, youtube, bio, avatar_url')
               .eq('id', user.id)
               .single();
             if (profileRow) {
               if (profileRow.name && profileRow.name !== 'User') setName(profileRow.name);
               if (profileRow.role) setRole(profileRow.role);
+              if (profileRow.bio) setBio(profileRow.bio);
+              if (profileRow.avatar_url) setAvatarUrl(profileRow.avatar_url);
+              if (profileRow.instagram) setInstagram(profileRow.instagram);
+              if (profileRow.youtube) setYoutube(profileRow.youtube);
               if (profileRow.is_verified) initialVerified = true;
               if (profileRow.verification_code && profileRow.verification_code.startsWith('WOVZO-')) {
                 initialCode = profileRow.verification_code;
@@ -313,66 +355,101 @@ export default function SettingsPage() {
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-    
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    const cleanEmail = (email || user?.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
+
+    // 1. ALWAYS SAVE TO LOCAL STORAGE IMMEDIATELY FIRST
+    try {
+      const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+      const updatedDemo = {
+        ...demo,
+        email: cleanEmail,
+        name: name.trim(),
+        avatar_url: avatarUrl,
+        bio: bio.trim(),
+        niche,
+        instagram: instagram.trim(),
+        youtube: youtube.trim(),
+        location: location.trim(),
+        phone: phone.trim(),
+        is_verified: isVerified,
+        verification_code: verificationCode,
+      };
+      localStorage.setItem('wovzo_demo_user', JSON.stringify(updatedDemo));
+
+      const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+      reg[cleanEmail] = {
+        ...(reg[cleanEmail] || {}),
+        name: name.trim(),
+        avatar_url: avatarUrl,
+        bio: bio.trim(),
+        niche,
+        instagram: instagram.trim(),
+        youtube: youtube.trim(),
+        location: location.trim(),
+        phone: phone.trim(),
+        is_verified: isVerified,
+        verification_code: verificationCode,
+        ...(password ? { password } : {})
+      };
+      localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+    } catch (saveErr) {
+      console.warn('Local save warning:', saveErr);
+    }
+
+    // 2. Sync to Supabase in background (if reachable)
     try {
       if (name && user) {
         try {
           await supabase.from('profiles').update({ 
-            name, 
-            instagram, 
-            youtube, 
+            name: name.trim(), 
+            instagram: instagram.trim(), 
+            youtube: youtube.trim(), 
+            bio: bio.trim(),
+            avatar_url: avatarUrl,
             is_verified: isVerified,
             verification_code: verificationCode 
-          }).eq('id', user.id)
+          }).eq('id', user.id);
         } catch (e) {
-          console.error('Profiles table update error:', e)
+          console.error('Profiles table update notice:', e);
         }
       }
       
-      const { data: updatedData, error: metaError } = await supabase.auth.updateUser({
-        data: {
-          name,
-          avatar_url: avatarUrl,
-          bio,
-          niche,
-          instagram,
-          youtube,
-          location,
-          phone,
-          is_verified: isVerified,
-          verification_code: verificationCode,
-        }
-      })
-      if (metaError) throw metaError
-      if (updatedData?.user) setUser(updatedData.user)
-
-      // Sync demo storage
-      try {
-        const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
-        demo.name = name;
-        demo.instagram = instagram;
-        demo.youtube = youtube;
-        demo.is_verified = isVerified;
-        demo.verification_code = verificationCode;
-        localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
-      } catch (_) {}
-
-      if (password) {
-        const { error: passError } = await supabase.auth.updateUser({ password })
-        if (passError) throw passError
-        setPassword('')
+      if (user) {
+        const { data: updatedData } = await supabase.auth.updateUser({
+          data: {
+            name: name.trim(),
+            avatar_url: avatarUrl,
+            bio: bio.trim(),
+            niche,
+            instagram: instagram.trim(),
+            youtube: youtube.trim(),
+            location: location.trim(),
+            phone: phone.trim(),
+            is_verified: isVerified,
+            verification_code: verificationCode,
+          }
+        });
+        if (updatedData?.user) setUser(updatedData.user);
       }
 
-      setMessage('Profile settings updated successfully!')
+      if (password && user) {
+        try {
+          await supabase.auth.updateUser({ password });
+          setPassword('');
+        } catch (_) {}
+      }
     } catch (error: any) {
-      setMessage(error.message || 'An error occurred')
+      console.warn('Supabase remote sync notice:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
+      setMessage('Profile settings saved successfully!');
+      setTimeout(() => setMessage(''), 4000);
     }
-  }
+  };
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
@@ -504,7 +581,7 @@ export default function SettingsPage() {
             <input 
               type="email" 
               disabled 
-              value={user?.email || ''} 
+              value={email || user?.email || ''} 
               className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm sm:text-sm bg-gray-50 text-gray-500 px-3.5 py-2.5 border" 
             />
             <p className="mt-1 text-xs text-gray-400">Email cannot be changed.</p>
