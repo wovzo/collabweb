@@ -282,10 +282,29 @@ export default function Login() {
         err.name === "TypeError";
 
       if (isNetworkOrFetch) {
-        // Offline / Supabase paused fallback
-        // Even offline, STRICTLY check local account role
-        if (localRegisteredRole) {
-          const normLocal = (localRegisteredRole.toLowerCase() === "influencer" || localRegisteredRole.toLowerCase() === "creator") ? "influencer" : "brand";
+        // STRICT SIGN-UP CHECK: Only users who have signed up can sign in!
+        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+        const account = reg[cleanEmail];
+        const isDefaultSeed = cleanEmail === "asrafgiimi@gmail.com" || cleanEmail === "asrafgiimi";
+
+        if (!account && !isDefaultSeed) {
+          setError("No account found with this email. Please Sign Up first to create your account.");
+          setLoading(false);
+          return;
+        }
+
+        // Verify password if available
+        const expectedPass = account?.password || (isDefaultSeed ? "password123" : null);
+        if (expectedPass && expectedPass !== password) {
+          setError("Invalid password. Please check your credentials and try again.");
+          setLoading(false);
+          return;
+        }
+
+        // Strictly check registered role
+        const regRole = account?.role || (isDefaultSeed ? "influencer" : localRegisteredRole);
+        if (regRole) {
+          const normLocal = (regRole.toLowerCase() === "influencer" || regRole.toLowerCase() === "creator") ? "influencer" : "brand";
           if (normLocal !== selectedNormRole) {
             const targetName = normLocal === "influencer" ? "Creator" : "Brand";
             const currentName = selectedNormRole === "influencer" ? "Creator" : "Brand";
@@ -295,16 +314,14 @@ export default function Login() {
           }
         }
 
-        // Save for demo
+        // Save session on successful sign in
         try {
           localStorage.setItem(`wovzo_user_role_${cleanEmail}`, selectedNormRole);
-          const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
-          reg[cleanEmail] = { role: selectedNormRole };
-          localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
           localStorage.removeItem("wovzo_applied_campaigns");
           localStorage.removeItem("wovzo_submitted_applications");
           localStorage.setItem("wovzo_demo_user", JSON.stringify({
             email: cleanEmail,
+            name: account?.name || (isDefaultSeed ? "Asraf Giimi" : "User"),
             role: selectedNormRole
           }));
         } catch (_) {}
@@ -312,7 +329,12 @@ export default function Login() {
         router.push(selectedNormRole === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
         return;
       }
-      setError(err.message || "Failed to log in.");
+
+      if (err.message?.toLowerCase().includes("invalid login credentials")) {
+        setError("Invalid email or password. If you don't have an account yet, please click 'Sign Up' below.");
+      } else {
+        setError(err.message || "Failed to log in.");
+      }
     } finally {
       setLoading(false);
     }

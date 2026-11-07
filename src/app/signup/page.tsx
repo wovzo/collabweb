@@ -127,6 +127,7 @@ export default function Signup() {
         localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
         reg[cleanEmail] = {
           role: normRole,
+          password: password,
           name: displayName,
           brand_name: normRole === "brand" ? brandName.trim() : "",
           contact_name: name.trim(),
@@ -211,6 +212,7 @@ export default function Signup() {
           localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
           reg[cleanEmail] = {
             role: normRole,
+            password: password,
             name: displayName,
             brand_name: normRole === "brand" ? brandName.trim() : "",
             contact_name: name.trim(),
