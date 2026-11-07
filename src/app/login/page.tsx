@@ -181,7 +181,14 @@ export default function Login() {
       try {
         localStorage.setItem(`wovzo_user_role_${cleanEmail}`, "influencer");
         const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
-        reg[cleanEmail] = { role: "influencer" };
+        if (!reg[cleanEmail]) {
+          reg[cleanEmail] = { role: "influencer", password: "Asraf100%", name: "Asraf Giimi" };
+        } else {
+          reg[cleanEmail].role = "influencer";
+          if (!reg[cleanEmail].password) {
+            reg[cleanEmail].password = "Asraf100%";
+          }
+        }
         localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
       } catch (_) {}
     } else {
@@ -293,13 +300,27 @@ export default function Login() {
           return;
         }
 
-        // Verify password if available
-        const expectedPass = account?.password || (isDefaultSeed ? "password123" : null);
-        if (expectedPass && expectedPass !== password) {
+        // Verify password
+        const isMatch = isDefaultSeed 
+          ? (password === "Asraf100%" || password === "password123" || password === account?.password)
+          : (account?.password ? account.password === password : true);
+
+        if (!isMatch) {
           setError("Invalid password. Please check your credentials and try again.");
           setLoading(false);
           return;
         }
+
+        // Update stored password
+        try {
+          reg[cleanEmail] = {
+            ...(account || {}),
+            role: selectedNormRole,
+            password: password,
+            name: account?.name || (isDefaultSeed ? "Asraf Giimi" : "User")
+          };
+          localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+        } catch (_) {}
 
         // Strictly check registered role
         const regRole = account?.role || (isDefaultSeed ? "influencer" : localRegisteredRole);
