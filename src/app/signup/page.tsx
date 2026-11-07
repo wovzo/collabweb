@@ -27,15 +27,104 @@ export default function Signup() {
     try {
       const cleanEmail = email.toLowerCase().trim();
       const normRole = role === "influencer" ? "influencer" : "brand";
-      const cleanIg = instagram.trim().replace(/^@/, '');
+      const cleanIg = instagram.trim().replace(/^@/, '').toLowerCase();
       const cleanYt = youtube.trim();
+      const cleanBrand = brandName.trim().toLowerCase();
       const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
       const displayName = normRole === "brand" ? (brandName.trim() || name.trim() || "Brand") : (name.trim() || "Creator");
 
-      // Save to local accounts registry
+      // 1. Check if email already registered locally
+      const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+      if (reg[cleanEmail]) {
+        setError("An account with this email address already exists. Please Sign In instead.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Prevent same creator from creating multiple accounts with same Instagram handle
+      if (normRole === "influencer" && cleanIg) {
+        const duplicateIg = Object.values(reg).find((acc: any) => 
+          acc.instagram && acc.instagram.toLowerCase().replace('@', '') === cleanIg
+        );
+        if (duplicateIg) {
+          setError(`This Instagram handle (@${cleanIg}) is already registered with an existing account. Multiple accounts are not allowed.`);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
+          const { data: existingProfiles }: any = await Promise.race([
+            supabase.from('profiles').select('id, name').ilike('instagram', `%${cleanIg}%`).limit(1),
+            timeoutPromise
+          ]).catch(() => ({ data: null }));
+
+          if (existingProfiles && existingProfiles.length > 0) {
+            setError(`This Instagram handle (@${cleanIg}) is already registered with an existing account. Multiple accounts are not allowed.`);
+            setLoading(false);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // 3. Prevent duplicate brand accounts
+      if (normRole === "brand" && cleanBrand.length >= 3) {
+        const duplicateBrand = Object.values(reg).find((acc: any) => 
+          acc.brand_name && acc.brand_name.toLowerCase() === cleanBrand
+        );
+        if (duplicateBrand) {
+          setError(`A brand named "${brandName.trim()}" is already registered. Duplicate brand accounts are not allowed.`);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
+          const { data: existingBrands }: any = await Promise.race([
+            supabase.from('profiles').select('id, name').eq('role', 'brand').ilike('name', cleanBrand).limit(1),
+            timeoutPromise
+          ]).catch(() => ({ data: null }));
+
+          if (existingBrands && existingBrands.length > 0) {
+            setError(`A brand named "${brandName.trim()}" is already registered. Duplicate brand accounts are not allowed.`);
+            setLoading(false);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // 4. Sign up the user in Supabase Auth and pass custom data
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            name: displayName,
+            brand_name: normRole === "brand" ? brandName.trim() : "",
+            contact_name: name.trim(),
+            role: normRole,
+            instagram: cleanIg ? `@${cleanIg}` : "",
+            youtube: cleanYt,
+            verification_code: verificationCode,
+            is_verified: false,
+            instagram_verified: false,
+            youtube_verified: false,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      // Supabase returns empty identities when user already exists with this email!
+      if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+        setError("An account with this email address already exists. Please Sign In instead.");
+        setLoading(false);
+        return;
+      }
+
+      // Save to local accounts registry only on verified success
       try {
         localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
-        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
         reg[cleanEmail] = {
           role: normRole,
           name: displayName,
@@ -58,29 +147,9 @@ export default function Signup() {
           verification_code: verificationCode,
           is_verified: false,
         }));
+        localStorage.removeItem("wovzo_applied_campaigns");
+        localStorage.removeItem("wovzo_submitted_applications");
       } catch (_) {}
-
-      // 1. Sign up the user in Supabase Auth and pass custom data
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: {
-            name: displayName,
-            brand_name: normRole === "brand" ? brandName.trim() : "",
-            contact_name: name.trim(),
-            role: normRole,
-            instagram: cleanIg ? `@${cleanIg}` : "",
-            youtube: cleanYt,
-            verification_code: verificationCode,
-            is_verified: false,
-            instagram_verified: false,
-            youtube_verified: false,
-          }
-        }
-      });
-
-      if (authError) throw authError;
 
       // Ensure profile row exists
       if (authData.user) {
@@ -97,7 +166,7 @@ export default function Signup() {
         } catch (_) {}
       }
 
-      // 3. Redirect to appropriate dashboard based on role
+      // Redirect to appropriate dashboard based on role
       if (normRole === "influencer") {
         router.push("/dashboard/creator");
       } else {
@@ -105,6 +174,18 @@ export default function Signup() {
       }
     } catch (err: any) {
       console.warn("Signup error, checking fallback:", err);
+      const errLower = (err.message || "").toLowerCase();
+
+      // Check if error is about already registered / duplicate account
+      if (errLower.includes("already registered") || 
+          errLower.includes("already exists") || 
+          errLower.includes("user_already_exists") ||
+          errLower.includes("unique constraint")) {
+        setError("An account with this email address already exists. Please Sign In instead.");
+        setLoading(false);
+        return;
+      }
+
       const isNetworkOrFetch = 
         err.message?.toLowerCase().includes("fetch") ||
         err.message?.toLowerCase().includes("network") ||
@@ -114,13 +195,20 @@ export default function Signup() {
       if (isNetworkOrFetch) {
         const cleanEmail = email.toLowerCase().trim();
         const normRole = role === "influencer" ? "influencer" : "brand";
-        const cleanIg = instagram.trim().replace(/^@/, '');
+        const cleanIg = instagram.trim().replace(/^@/, '').toLowerCase();
         const cleanYt = youtube.trim();
         const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
         const displayName = normRole === "brand" ? (brandName.trim() || name.trim() || "Brand") : (name.trim() || "Creator");
+        
+        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+        if (reg[cleanEmail]) {
+          setError("An account with this email address already exists. Please Sign In instead.");
+          setLoading(false);
+          return;
+        }
+
         try {
           localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
-          const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
           reg[cleanEmail] = {
             role: normRole,
             name: displayName,
@@ -143,6 +231,8 @@ export default function Signup() {
             verification_code: verificationCode,
             is_verified: false,
           }));
+          localStorage.removeItem("wovzo_applied_campaigns");
+          localStorage.removeItem("wovzo_submitted_applications");
         } catch (_) {}
         router.push(normRole === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
         return;
