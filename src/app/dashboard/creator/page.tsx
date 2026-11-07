@@ -43,7 +43,7 @@ export default function CreatorDashboard() {
   const [campaigns, setCampaigns] = useState<any[]>(DEFAULT_CREATOR_CAMPAIGNS);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
-  const [appliedCampaigns, setAppliedCampaigns] = useState<string[]>(['exp-3']);
+  const [appliedCampaigns, setAppliedCampaigns] = useState<string[]>([]);
   const [isVerified, setIsVerified] = useState(true);
   const [verificationCode, setVerificationCode] = useState("WOVZO-4921");
   const [toastSuccess, setToastSuccess] = useState<string | null>(null);

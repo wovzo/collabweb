@@ -73,7 +73,7 @@ const DEFAULT_CREATOR_APPLICATIONS: Application[] = [
 ];
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<Application[]>(DEFAULT_CREATOR_APPLICATIONS)
+  const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'action_needed' | 'completed'>('all')
 
@@ -85,6 +85,14 @@ export default function ApplicationsPage() {
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
+    // Instant hydration from local storage
+    try {
+      const localApps = JSON.parse(localStorage.getItem('wovzo_submitted_applications') || '[]');
+      if (Array.isArray(localApps) && localApps.length > 0) {
+        setApplications(localApps);
+      }
+    } catch (_) {}
+
     loadApps()
   }, [])
 
@@ -95,7 +103,7 @@ export default function ApplicationsPage() {
       const user = userRes?.data?.user;
       if (!user) return;
 
-      const { data, error }: any = await Promise.race([
+      const { data }: any = await Promise.race([
         supabase
           .from('applications')
           .select(`
@@ -122,8 +130,15 @@ export default function ApplicationsPage() {
         timeoutPromise
       ]).catch(() => ({ data: null }));
 
-      if (data && data.length > 0) {
-        setApplications(data as any[]);
+      if (Array.isArray(data)) {
+        try {
+          const localApps = JSON.parse(localStorage.getItem('wovzo_submitted_applications') || '[]');
+          const remoteCampIds = new Set(data.map((a: any) => a.campaign_id || a.campaigns?.id || a.id));
+          const uniqueLocal = localApps.filter((a: any) => !remoteCampIds.has(a.campaign_id || a.campaigns?.id || a.id));
+          setApplications([...uniqueLocal, ...data] as any[]);
+        } catch (_) {
+          setApplications(data as any[]);
+        }
       }
     } catch (_) {}
   }

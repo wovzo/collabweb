@@ -158,6 +158,8 @@ export default function Login() {
         role: selectedNormRole,
         provider: "google",
       }));
+      localStorage.removeItem("wovzo_applied_campaigns");
+      localStorage.removeItem("wovzo_submitted_applications");
     } catch (_) {}
 
     setShowGoogleModal(false);
@@ -261,6 +263,8 @@ export default function Login() {
           const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
           reg[cleanEmail] = { role: normRegistered };
           localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+          localStorage.removeItem("wovzo_applied_campaigns");
+          localStorage.removeItem("wovzo_submitted_applications");
         } catch (_) {}
 
         if (normRegistered === "influencer") {
@@ -297,6 +301,8 @@ export default function Login() {
           const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
           reg[cleanEmail] = { role: selectedNormRole };
           localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+          localStorage.removeItem("wovzo_applied_campaigns");
+          localStorage.removeItem("wovzo_submitted_applications");
           localStorage.setItem("wovzo_demo_user", JSON.stringify({
             email: cleanEmail,
             role: selectedNormRole

@@ -49,7 +49,7 @@ const DEFAULT_EXPLORE_CAMPAIGNS = [
 
 export default function ExplorePage() {
   const [campaigns, setCampaigns] = useState<any[]>(DEFAULT_EXPLORE_CAMPAIGNS)
-  const [appliedIds, setAppliedIds] = useState<string[]>(['exp-3'])
+  const [appliedIds, setAppliedIds] = useState<string[]>([])
   const [hideApplied, setHideApplied] = useState(false)
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -183,6 +183,26 @@ export default function ExplorePage() {
         try { localStorage.setItem('wovzo_applied_campaigns', JSON.stringify(updated)) } catch (_) {}
         return updated
       })
+
+      // Cache submitted application locally so Applications tab updates instantly
+      const newAppEntry = {
+        id: `app-${Date.now()}`,
+        status: 'pending',
+        pitch: pitch.trim(),
+        created_at: new Date().toISOString(),
+        campaigns: {
+          id: selectedCampaign.id,
+          title: selectedCampaign.title,
+          budget: selectedCampaign.budget,
+          requirements: selectedCampaign.requirements,
+          platform: selectedCampaign.platform,
+          profiles: { name: selectedCampaign.profiles?.name || 'Brand' }
+        }
+      }
+      try {
+        const existing = JSON.parse(localStorage.getItem('wovzo_submitted_applications') || '[]')
+        localStorage.setItem('wovzo_submitted_applications', JSON.stringify([newAppEntry, ...existing]))
+      } catch (_) {}
 
       // Immediately close the box and throw success message
       const campTitle = selectedCampaign.title
