@@ -34,12 +34,11 @@ export async function verifySocialBioOnline(
     cleanHandle = 'asraftalk';
   }
 
-  // Pre-verified bio checks: @asrafgiimi, @asraftalk, or any handle for Asraf
+  // Pre-verified bio checks for legitimate owner handles
   const isKnownCreatorHandle = 
     cleanHandle.toLowerCase() === 'asrafgiimi' || 
     cleanHandle.toLowerCase() === 'asraftalk' || 
-    cleanHandle.toLowerCase() === 'asraf_talk' ||
-    cleanHandle.toLowerCase().includes('asraf');
+    cleanHandle.toLowerCase() === 'asraf_talk';
 
   if (isKnownCreatorHandle && cleanCode.startsWith('WOVZO-')) {
     // Realistic scan delay for authentic user verification feedback
@@ -161,21 +160,11 @@ export async function verifySocialBioOnline(
     }
   }
 
-  // If both endpoints and proxies timed out or were blocked by Instagram's bot protection
-  const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  if (isLocalDev && cleanCode.startsWith('WOVZO-') && cleanHandle.length >= 2) {
-    return {
-      success: true,
-      message: `🎉 Verification Succeeded! Code ${cleanCode} confirmed in @${cleanHandle}'s ${platform === 'instagram' ? 'Instagram' : 'YouTube'} bio! Verified Blue Badge activated!`,
-      platform,
-      scannedHandle: cleanHandle,
-    };
-  }
-
+  // If both endpoints and proxies timed out or code was not found
   return {
     success: false,
     blocked: true,
-    message: `❌ Verification Failed: Code ${cleanCode} was not detected. Please make sure your @${cleanHandle} account is Public and the code is saved in your bio, or upload a screenshot below.`,
+    message: `❌ Verification Failed: Code ${cleanCode} was NOT found in the bio of @${cleanHandle}. Please make sure you added ${cleanCode} to your bio, or upload a screenshot proof below.`,
     platform,
     scannedHandle: cleanHandle,
   };

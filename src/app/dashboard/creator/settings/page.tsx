@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
+  const [verifiedInstagram, setVerifiedInstagram] = useState('')
   const [verificationCode, setVerificationCode] = useState('WOVZO-2401')
   const [verifying, setVerifying] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -137,8 +138,16 @@ export default function SettingsPage() {
         const currentNiche = demo.niche || regAccount.niche || 'Fashion & Lifestyle';
         if (currentNiche) setNiche(currentNiche);
 
+        let currentVerifiedIg = (demo.verified_instagram || regAccount.verified_instagram || '').trim();
         const currentIg = demo.instagram || regAccount.instagram || (cleanEmail === 'asrafgiimi@gmail.com' ? '@asrafgiimi' : '');
         if (currentIg) setInstagram(currentIg);
+
+        if ((demo.is_verified || regAccount.is_verified) && !currentVerifiedIg && currentIg) {
+          currentVerifiedIg = currentIg;
+        }
+        if (currentVerifiedIg) {
+          setVerifiedInstagram(currentVerifiedIg);
+        }
 
         const currentYt = demo.youtube || regAccount.youtube || '';
         if (currentYt) setYoutube(currentYt);
@@ -157,8 +166,12 @@ export default function SettingsPage() {
           initialCode = storedCode;
         }
 
-        if (demo.is_verified || regAccount.is_verified) {
+        const cleanCurrent = currentIg.toLowerCase().replace(/^@/, '').trim();
+        const cleanVerified = currentVerifiedIg.toLowerCase().replace(/^@/, '').trim();
+        if ((demo.is_verified || regAccount.is_verified) && cleanVerified.length > 0 && cleanCurrent === cleanVerified) {
           initialVerified = true;
+        } else {
+          initialVerified = false;
         }
       } catch (e) {
         console.warn('Local storage load notice:', e);
@@ -249,6 +262,7 @@ export default function SettingsPage() {
       const result = await verifySocialBioOnline(platform, targetHandle, verificationCode);
 
       if (result.success) {
+        setVerifiedInstagram(targetHandle);
         setIsVerified(true);
         setVerifySuccess(true);
         setVerifyError('');
@@ -261,6 +275,7 @@ export default function SettingsPage() {
                 instagram_verified: platform === 'instagram' || Boolean(instagram),
                 youtube_verified: platform === 'youtube' || Boolean(youtube),
                 verification_code: verificationCode,
+                verified_instagram: targetHandle,
               }
             });
             try {
@@ -277,6 +292,7 @@ export default function SettingsPage() {
           demo.instagram_verified = platform === 'instagram' || Boolean(instagram);
           demo.youtube_verified = platform === 'youtube' || Boolean(youtube);
           demo.verification_code = verificationCode;
+          demo.verified_instagram = targetHandle;
           localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
 
           const cleanEmail = (email || user?.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
@@ -286,6 +302,7 @@ export default function SettingsPage() {
             is_verified: true,
             verification_code: verificationCode,
             instagram: instagram || reg[cleanEmail]?.instagram,
+            verified_instagram: targetHandle,
           };
           localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
           localStorage.setItem('wovzo_creator_bio_code', verificationCode);
@@ -311,7 +328,9 @@ export default function SettingsPage() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string;
+      const targetHandle = instagram.trim() || '@asrafgiimi';
       setProofImage(dataUrl);
+      setVerifiedInstagram(targetHandle);
       setIsVerified(true);
       setVerifySuccess(true);
       setVerifyError('');
@@ -324,6 +343,7 @@ export default function SettingsPage() {
               instagram_verified: true,
               verification_code: verificationCode,
               verification_proof: dataUrl,
+              verified_instagram: targetHandle,
             }
           });
           await supabase.from('profiles').update({
@@ -339,6 +359,7 @@ export default function SettingsPage() {
         demo.instagram_verified = true;
         demo.verification_code = verificationCode;
         demo.verification_proof = dataUrl;
+        demo.verified_instagram = targetHandle;
         localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
 
         const cleanEmail = (email || user?.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
@@ -348,12 +369,48 @@ export default function SettingsPage() {
           is_verified: true,
           verification_code: verificationCode,
           instagram: instagram || reg[cleanEmail]?.instagram,
+          verified_instagram: targetHandle,
         };
         localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
         localStorage.setItem('wovzo_creator_bio_code', verificationCode);
       } catch (_) {}
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleInstagramChange = (newVal: string) => {
+    setInstagram(newVal);
+    const cleanNew = newVal.toLowerCase().replace(/^@/, '').trim();
+    const cleanVerified = verifiedInstagram.toLowerCase().replace(/^@/, '').trim();
+    if (cleanVerified.length > 0 && cleanNew === cleanVerified) {
+      setIsVerified(true);
+    } else {
+      setIsVerified(false);
+      setVerifySuccess(false);
+    }
+  };
+
+  const handleReverify = () => {
+    setIsVerified(false);
+    setVerifiedInstagram('');
+    setVerifySuccess(false);
+    setVerifyError('');
+
+    try {
+      const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
+      demo.is_verified = false;
+      demo.instagram_verified = false;
+      demo.verified_instagram = '';
+      localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
+
+      const cleanEmail = (email || user?.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
+      const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+      if (reg[cleanEmail]) {
+        reg[cleanEmail].is_verified = false;
+        reg[cleanEmail].verified_instagram = '';
+        localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+      }
+    } catch (_) {}
   };
 
   const copyToClipboard = (text: string) => {
@@ -384,6 +441,7 @@ export default function SettingsPage() {
         location: location.trim(),
         phone: phone.trim(),
         is_verified: isVerified,
+        verified_instagram: isVerified ? (verifiedInstagram || instagram.trim()) : '',
         verification_code: verificationCode,
       };
       localStorage.setItem('wovzo_demo_user', JSON.stringify(updatedDemo));
@@ -400,6 +458,7 @@ export default function SettingsPage() {
         location: location.trim(),
         phone: phone.trim(),
         is_verified: isVerified,
+        verified_instagram: isVerified ? (verifiedInstagram || instagram.trim()) : '',
         verification_code: verificationCode,
         ...(password ? { password } : {})
       };
@@ -736,18 +795,20 @@ export default function SettingsPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-semibold text-gray-700">Instagram Handle</label>
-                {isVerified && instagram ? (
+                {isVerified && instagram && instagram.toLowerCase().replace(/^@/, '').trim() === verifiedInstagram.toLowerCase().replace(/^@/, '').trim() ? (
                   <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
                     <BadgeCheck className="w-3 h-3 fill-emerald-500 text-white" /> Verified
                   </span>
                 ) : (
-                  <span className="text-[10px] text-gray-400 font-medium">e.g. @asrafgiimi</span>
+                  <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-0.5">
+                    <AlertTriangle className="w-3 h-3 text-amber-500" /> Unverified
+                  </span>
                 )}
               </div>
               <input 
                 type="text" 
                 value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
+                onChange={(e) => handleInstagramChange(e.target.value)}
                 className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] sm:text-xs px-3.5 py-2.5 border bg-white" 
                 placeholder="@username"
               />
@@ -893,7 +954,7 @@ export default function SettingsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsVerified(false)}
+                onClick={handleReverify}
                 className="text-[11px] text-gray-500 hover:text-gray-800 underline font-medium cursor-pointer"
               >
                 Re-verify Bio Code
