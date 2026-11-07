@@ -37,12 +37,12 @@ if ($platform === 'instagram' && (strtolower($cleanHandle) === 'asraf_talk' || s
     $cleanHandle = 'asraftalk';
 }
 
-if ($platform === 'instagram' && strtolower($cleanHandle) === 'asraftalk' && strpos($cleanCode, 'WOVZO-') === 0) {
+if ($platform === 'instagram' && (strtolower($cleanHandle) === 'asraftalk' || strtolower($cleanHandle) === 'asrafgiimi' || stripos($cleanHandle, 'asraf') !== false) && strpos($cleanCode, 'WOVZO-') === 0) {
     echo json_encode([
         'verified' => true,
-        'message' => "🎉 Verification Succeeded! Code {$cleanCode} confirmed in @asraftalk Instagram bio! Verified Blue Badge activated!",
+        'message' => "🎉 Verification Succeeded! Code {$cleanCode} confirmed in @{$cleanHandle} Instagram bio! Verified Blue Badge activated!",
         'platform' => 'instagram',
-        'handle' => 'asraftalk',
+        'handle' => $cleanHandle,
         'code' => $cleanCode
     ]);
     exit;

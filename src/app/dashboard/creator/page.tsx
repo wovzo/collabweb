@@ -53,7 +53,14 @@ export default function CreatorDashboard() {
     try {
       const demo = JSON.parse(localStorage.getItem('wovzo_demo_user') || '{}');
       if (demo.name) setProfile((p: any) => ({ ...p, name: demo.name }));
-      if (demo.is_verified) setIsVerified(true);
+      const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
+      const cleanEmail = (demo.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
+      const regAccount = reg[cleanEmail] || {};
+      if (demo.is_verified !== undefined) {
+        setIsVerified(Boolean(demo.is_verified));
+      } else if (regAccount.is_verified !== undefined) {
+        setIsVerified(Boolean(regAccount.is_verified));
+      }
       if (demo.verification_code) setVerificationCode(demo.verification_code);
 
       const cachedCamps = JSON.parse(localStorage.getItem('wovzo_cached_campaigns') || '[]');

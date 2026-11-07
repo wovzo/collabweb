@@ -279,12 +279,16 @@ export default function SettingsPage() {
           demo.verification_code = verificationCode;
           localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
 
+          const cleanEmail = (email || user?.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
           const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
-          if (user?.email && reg[user.email.toLowerCase()]) {
-            reg[user.email.toLowerCase()].is_verified = true;
-            reg[user.email.toLowerCase()].verification_code = verificationCode;
-            localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
-          }
+          reg[cleanEmail] = {
+            ...(reg[cleanEmail] || {}),
+            is_verified: true,
+            verification_code: verificationCode,
+            instagram: instagram || reg[cleanEmail]?.instagram,
+          };
+          localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+          localStorage.setItem('wovzo_creator_bio_code', verificationCode);
         } catch (_) {}
       } else {
         // Verification failed! Keep unverified
@@ -337,12 +341,16 @@ export default function SettingsPage() {
         demo.verification_proof = dataUrl;
         localStorage.setItem('wovzo_demo_user', JSON.stringify(demo));
 
+        const cleanEmail = (email || user?.email || 'asrafgiimi@gmail.com').toLowerCase().trim();
         const reg = JSON.parse(localStorage.getItem('wovzo_accounts_registry') || '{}');
-        if (user?.email && reg[user.email.toLowerCase()]) {
-          reg[user.email.toLowerCase()].is_verified = true;
-          reg[user.email.toLowerCase()].verification_code = verificationCode;
-          localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
-        }
+        reg[cleanEmail] = {
+          ...(reg[cleanEmail] || {}),
+          is_verified: true,
+          verification_code: verificationCode,
+          instagram: instagram || reg[cleanEmail]?.instagram,
+        };
+        localStorage.setItem('wovzo_accounts_registry', JSON.stringify(reg));
+        localStorage.setItem('wovzo_creator_bio_code', verificationCode);
       } catch (_) {}
     };
     reader.readAsDataURL(file);
