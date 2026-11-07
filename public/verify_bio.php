@@ -41,19 +41,29 @@ $found = false;
 $scannedUrl = '';
 $scannedSnippet = '';
 
-function fetchUrlWithTimeout($url, $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36') {
+function fetchUrlWithTimeout($url, $userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1') {
     if (function_exists('curl_init')) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        @curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 4);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
         curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_ENCODING, ''); // Automatically decompresses gzip, deflate, and brotli
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language: en-US,en;q=0.9',
-            'Cache-Control: no-cache'
+            'Cache-Control: no-cache',
+            'Pragma: no-cache',
+            'Sec-Fetch-Dest: document',
+            'Sec-Fetch-Mode: navigate',
+            'Sec-Fetch-Site: none',
+            'Sec-Fetch-User: ?1',
+            'Upgrade-Insecure-Requests: 1'
         ]);
         $data = curl_exec($ch);
         curl_close($ch);
@@ -63,12 +73,14 @@ function fetchUrlWithTimeout($url, $userAgent = 'Mozilla/5.0 (Windows NT 10.0; W
             'http' => [
                 'method' => 'GET',
                 'header' => "User-Agent: {$userAgent}\r\nAccept-Language: en-US,en;q=0.9\r\n",
-                'timeout' => 8
+                'timeout' => 6
             ]
         ];
         return @file_get_contents($url, false, stream_context_create($opts));
     }
 }
+
+$normCode = preg_replace('/[^A-Z0-9]/', '', $cleanCode);
 
 if ($platform === 'youtube') {
     // Scan YouTube Channel About Page
@@ -78,22 +90,24 @@ if ($platform === 'youtube') {
     ];
 
     foreach ($urls as $url) {
-        $html = fetchUrlWithTimeout($url);
+        $html = fetchUrlWithTimeout($url, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         if ($html && is_string($html)) {
             $scannedUrl = $url;
-            if (stripos($html, $cleanCode) !== false) {
+            $decoded = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $normHtml = preg_replace('/[^A-Z0-9]/', '', strtoupper($decoded));
+            if (stripos($decoded, $cleanCode) !== false || (strlen($normCode) >= 6 && strpos($normHtml, $normCode) !== false)) {
                 $found = true;
                 break;
             }
         }
     }
 } else {
-    // Scan Instagram Public Mirrors & Profile
+    // Scan Instagram: Direct Instagram profile FIRST!
     $urls = [
-        "https://imginn.com/" . $cleanHandle . "/",
-        "https://dumpor.io/v/" . $cleanHandle,
-        "https://greatfon.com/c/" . $cleanHandle,
-        "https://www.instagram.com/" . $cleanHandle . "/"
+        "https://www.instagram.com/" . $cleanHandle . "/",
+        "https://www.instagram.com/" . $cleanHandle . "/?hl=en",
+        "https://dumpoir.com/v/" . $cleanHandle,
+        "https://picuki.com/profile/" . $cleanHandle
     ];
 
     $mobileUa = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1';
@@ -102,7 +116,9 @@ if ($platform === 'youtube') {
         $html = fetchUrlWithTimeout($url, $mobileUa);
         if ($html && is_string($html)) {
             $scannedUrl = $url;
-            if (stripos($html, $cleanCode) !== false) {
+            $decoded = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $normHtml = preg_replace('/[^A-Z0-9]/', '', strtoupper($decoded));
+            if (stripos($decoded, $cleanCode) !== false || (strlen($normCode) >= 6 && strpos($normHtml, $normCode) !== false)) {
                 $found = true;
                 break;
             }

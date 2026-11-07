@@ -41,113 +41,58 @@ export async function verifySocialBioOnline(
     };
   }
 
-  // 1. Try PHP verification endpoint (works on cPanel & live domain)
-  const phpEndpoints = [
+  const isLocalhost = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.includes('192.168.')
+  );
+
+  const verificationEndpoints = [
+    // 1. If on localhost, use local dev verification server (which scans live Instagram directly)
+    ...(isLocalhost ? [`http://localhost:3001/verify_bio?platform=${platform}&handle=${encodeURIComponent(cleanHandle)}&code=${encodeURIComponent(cleanCode)}`] : []),
+    // 2. Relative PHP endpoint (on cPanel / live domain)
     `/collab/verify_bio.php?platform=${platform}&handle=${encodeURIComponent(cleanHandle)}&code=${encodeURIComponent(cleanCode)}`,
+    // 3. Absolute PHP endpoint (works cross-domain)
     `https://wovzo.com/collab/verify_bio.php?platform=${platform}&handle=${encodeURIComponent(cleanHandle)}&code=${encodeURIComponent(cleanCode)}`
   ];
 
-  for (const endpoint of phpEndpoints) {
+  for (const endpoint of verificationEndpoints) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6000);
+      const timer = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(endpoint, { signal: controller.signal });
       clearTimeout(timer);
 
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data.verified === 'boolean') {
-          return {
-            success: data.verified,
-            message: data.message || (data.verified ? 'Verification Succeeded!' : 'Code not found in bio.'),
-            platform,
-            scannedHandle: cleanHandle,
-          };
-        }
-      }
-    } catch (_) {
-      // Continue to client-side CORS proxy check
-    }
-  }
-
-  // 2. Client-side scanning via open CORS proxies
-  if (platform === 'youtube') {
-    const targetYt = `https://www.youtube.com/@${cleanHandle}`;
-    const proxyUrls = [
-      `https://corsproxy.io/?${encodeURIComponent(targetYt)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(targetYt)}`,
-    ];
-
-    for (const pUrl of proxyUrls) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 7000);
-        const res = await fetch(pUrl, { signal: controller.signal });
-        clearTimeout(timer);
-
-        if (res.ok) {
-          const text = await res.text();
-          if (text.toUpperCase().includes(cleanCode)) {
+          if (data.verified) {
             return {
               success: true,
-              message: `🎉 Verification Succeeded! Found code ${cleanCode} in your YouTube channel description!`,
-              platform: 'youtube',
+              message: data.message || `🎉 Verification Succeeded! Found code ${cleanCode} in your bio!`,
+              platform,
               scannedHandle: cleanHandle,
             };
           } else {
             return {
               success: false,
-              message: `❌ Verification Failed: Code ${cleanCode} was NOT found in the description of YouTube channel @${cleanHandle}. Please make sure you saved it in your channel's About section and try again.`,
-              platform: 'youtube',
+              message: data.message || `❌ Verification Failed: Code ${cleanCode} was not found in your bio.`,
+              platform,
               scannedHandle: cleanHandle,
             };
           }
         }
-      } catch (_) {}
-    }
-  } else {
-    // Instagram scanning via public profile mirrors
-    const mirrorUrls = [
-      `https://corsproxy.io/?${encodeURIComponent(`https://imginn.com/${cleanHandle}/`)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://dumpor.io/v/${cleanHandle}`)}`,
-      `https://corsproxy.io/?${encodeURIComponent(`https://greatfon.com/c/${cleanHandle}`)}`
-    ];
-
-    for (const mUrl of mirrorUrls) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 7000);
-        const res = await fetch(mUrl, { signal: controller.signal });
-        clearTimeout(timer);
-
-        if (res.ok) {
-          const text = await res.text();
-          if (text.toUpperCase().includes(cleanCode)) {
-            return {
-              success: true,
-              message: `🎉 Verification Succeeded! Found code ${cleanCode} in @${cleanHandle}'s Instagram bio!`,
-              platform: 'instagram',
-              scannedHandle: cleanHandle,
-            };
-          } else if (text.length > 500) {
-            // Page loaded but code not present
-            return {
-              success: false,
-              message: `❌ Verification Failed: Code ${cleanCode} was NOT found in the bio of Instagram account @${cleanHandle}. Please paste the code into your Instagram bio and tap 'Done/Save' before clicking verify.`,
-              platform: 'instagram',
-              scannedHandle: cleanHandle,
-            };
-          }
-        }
-      } catch (_) {}
+      }
+    } catch (_) {
+      // Continue to next endpoint
     }
   }
 
-  // If both endpoints and proxies timed out or code was not found
+  // If endpoints timed out or failed to connect
   return {
     success: false,
     blocked: true,
-    message: `❌ Verification Failed: Code ${cleanCode} was NOT found in the bio of @${cleanHandle}. Please make sure you added ${cleanCode} to your bio, or upload a screenshot proof below.`,
+    message: `❌ Verification Failed: Code ${cleanCode} was NOT detected in the bio of @${cleanHandle}. Please make sure you added ${cleanCode} to your bio, or upload a screenshot proof below.`,
     platform,
     scannedHandle: cleanHandle,
   };
