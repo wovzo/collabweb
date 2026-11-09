@@ -330,15 +330,20 @@ export default function SettingsPage() {
           localStorage.setItem('wovzo_creator_bio_code', verificationCode);
         } catch (_) {}
       } else {
-        // Verification failed! Keep unverified
+        // Verification failed — Instagram may be blocking auto-scan
+        // Show helpful message + auto-open screenshot proof upload
         setIsVerified(false);
         setVerifySuccess(false);
-        setVerifyError(result.message || `Code ${verificationCode} was not found in your bio.`);
+        setVerifyError(`Auto-scan couldn't detect the code right now (Instagram may be blocking). Please upload a screenshot of your bio showing ${verificationCode} to verify instantly! ✨`);
+        // Auto-open screenshot upload after short delay
+        setTimeout(() => proofInputRef.current?.click(), 500);
       }
     } catch (err: any) {
       setIsVerified(false);
       setVerifySuccess(false);
-      setVerifyError(`Verification check error: ${err?.message || 'Unable to scan bio. Please ensure your handle is correct.'}`);
+      setVerifyError(`Unable to auto-scan bio right now. Please upload a screenshot of your bio showing the code ${verificationCode} to verify instantly.`);
+      // Auto-open screenshot upload
+      setTimeout(() => proofInputRef.current?.click(), 400);
     } finally {
       setVerifying(false);
     }
@@ -781,16 +786,24 @@ export default function SettingsPage() {
           )}
 
           {verifyError && (
-            <div className="p-4 bg-rose-50 border border-rose-300 text-rose-900 rounded-xl text-xs space-y-2 animate-in fade-in">
+            <div className="p-4 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl text-xs space-y-2.5 animate-in fade-in">
               <div className="flex items-start gap-2.5">
-                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="font-bold text-rose-900 text-xs">{verifyError}</p>
-                  <p className="text-[11px] text-rose-700 leading-relaxed">
-                    Make sure your profile is <strong>Public</strong>, add <code className="bg-rose-100 text-rose-900 px-1 py-0.5 rounded font-bold font-mono">{verificationCode}</code> to your bio or channel description, click <strong>Save</strong>, and try again.
+                  <p className="font-bold text-amber-900 text-xs">{verifyError}</p>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                    Make sure your profile is <strong>Public</strong>, add <code className="bg-amber-100 text-amber-900 px-1 py-0.5 rounded font-bold font-mono">{verificationCode}</code> to your bio, click <strong>Save</strong>, then try again — or upload a screenshot below for instant verification.
                   </p>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => proofInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>📸 Upload Bio Screenshot — Verify Instantly!</span>
+              </button>
             </div>
           )}
 
