@@ -295,7 +295,11 @@ export async function validateRegistrationChallenge(
     }
   }
 
-  return { allowed: true };
+  // STRICT FAIL-CLOSED SECURITY: If server validation failed or was not reached, NEVER allow registration
+  return { 
+    allowed: false, 
+    error: 'Mandatory social ownership verification required. Verification challenge could not be validated by security server. Registration blocked.' 
+  };
 }
 
 /**

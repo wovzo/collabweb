@@ -287,15 +287,7 @@ if ($cleanHandle === 'asraftalk') {
     }
 }
 
-// Match against active persistent challenge
-if (!$found && $record && !empty($record['code'])) {
-    $recordNorm = preg_replace('/[^A-Z0-9]/', '', strtoupper($record['code']));
-    if ($recordNorm === $normCode || strtoupper($record['code']) === $cleanCode) {
-        $found = true;
-        $platformAccountId = "IG_{$cleanHandle}";
-    }
-}
-
+// YouTube channel description check
 if ($platform === 'youtube' && !$found) {
     $ytUrls = [
         "https://www.youtube.com/@{$cleanHandle}/about",

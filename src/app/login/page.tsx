@@ -26,18 +26,33 @@ export default function Login() {
           const selectedNormRole = (pendingRole === "brand" ? "brand" : "influencer");
 
           let registeredRole: string | null = null;
+          let isSocialVerified = false;
           try {
             const { data: profile } = await supabase
               .from("profiles")
-              .select("role")
+              .select("role, is_verified, instagram_verified, youtube_verified")
               .eq("id", session.user.id)
               .maybeSingle();
 
             if (profile?.role) registeredRole = profile.role;
+            if (profile?.is_verified || profile?.instagram_verified || profile?.youtube_verified) {
+              isSocialVerified = true;
+            }
           } catch (_) {}
 
           if (!registeredRole && session.user.user_metadata?.role) {
             registeredRole = session.user.user_metadata.role;
+          }
+          if (session.user.user_metadata?.is_verified) {
+            isSocialVerified = true;
+          }
+
+          // MANDATORY SOCIAL VERIFICATION GATE:
+          // Google authentication must NOT bypass social ownership verification!
+          if (!isSocialVerified) {
+            localStorage.removeItem("wovzo_oauth_pending_role");
+            router.push("/signup?verification_required=1");
+            return;
           }
 
           let normRegistered = selectedNormRole;
@@ -45,17 +60,9 @@ export default function Login() {
             const lower = registeredRole.toLowerCase();
             normRegistered = (lower === "influencer" || lower === "creator") ? "influencer" : "brand";
           } else {
-            // First time Google signup: create profile with selected role
-            try {
-              await supabase.from("profiles").upsert({
-                id: session.user.id,
-                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "User",
-                role: selectedNormRole,
-                email: session.user.email,
-                avatar_url: session.user.user_metadata?.avatar_url || "",
-                updated_at: new Date().toISOString(),
-              });
-            } catch (_) {}
+            // First time Google signup must complete social verification first
+            router.push("/signup?verification_required=1");
+            return;
           }
 
           localStorage.removeItem("wovzo_oauth_pending_role");

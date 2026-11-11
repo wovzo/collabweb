@@ -265,62 +265,15 @@ async function verifyYouTube(handle, code, apiKey = process.env.YOUTUBE_API_KEY)
   };
 }
 
-// Instagram Bio Verification with Exact Error Classification
+// Instagram Bio Verification with Strict Fail-Closed Verification
 async function verifyInstagram(handle, code, accessToken = process.env.INSTAGRAM_ACCESS_TOKEN) {
   const cleanHandle = handle.replace(/^@+/, '').trim().toLowerCase();
   const cleanCode = code.trim().toUpperCase();
   const normCode = cleanCode.replace(/[^A-Z0-9]/g, '');
 
-  console.log(`[Verify] Processing Instagram verification for @${cleanHandle} with code: ${cleanCode}`);
+  console.log(`[Verify] Strict Instagram bio verification check for @${cleanHandle} with code: ${cleanCode}`);
 
-  // 1. SPECIFIC CONFIRMED BIO ACCOUNTS:
-  // User confirmed bio code for @style_with_fit: WOVZO-VERIFY-Q4A7WW
-  if (cleanHandle === 'style_with_fit') {
-    const expectedBio = "WOVZO-VERIFY-Q4A7WW";
-    const normExpected = expectedBio.replace(/[^A-Z0-9]/g, '');
-    if (normCode === normExpected || cleanCode === expectedBio) {
-      return {
-        found: true,
-        status: 'verified',
-        accountId: 'IG_style_with_fit',
-        snippet: expectedBio,
-        message: `Verified! Found ${expectedBio} in @style_with_fit bio.`,
-        apiUsed: 'Instagram Bio Matcher'
-      };
-    } else {
-      return {
-        found: false,
-        status: 'code_not_found',
-        errorCode: 'CODE_NOT_FOUND',
-        message: `Verification code ${cleanCode} was not found in @style_with_fit bio. Bio contains ${expectedBio}. Please update your bio with code ${cleanCode} and save, or use code ${expectedBio}.`
-      };
-    }
-  }
-
-  // User confirmed bio code for @asraftalk: WOVZO-VERIFY-564BMM
-  if (cleanHandle === 'asraftalk') {
-    const expectedBio = "WOVZO-VERIFY-564BMM";
-    const normExpected = expectedBio.replace(/[^A-Z0-9]/g, '');
-    if (normCode === normExpected || cleanCode === expectedBio) {
-      return {
-        found: true,
-        status: 'verified',
-        accountId: 'IG_asraftalk',
-        snippet: expectedBio,
-        message: `Verified! Found ${expectedBio} in @asraftalk bio.`,
-        apiUsed: 'Instagram Bio Matcher'
-      };
-    } else {
-      return {
-        found: false,
-        status: 'code_not_found',
-        errorCode: 'CODE_NOT_FOUND',
-        message: `Verification code ${cleanCode} was not found in @asraftalk bio. Bio contains ${expectedBio}. Please update your bio with code ${cleanCode} and save, or use code ${expectedBio}.`
-      };
-    }
-  }
-
-  // 2. Official Instagram Graph API (Business Discovery) if Access Token is provided
+  // 1. Official Instagram Graph API (Business Discovery) if Access Token is provided
   if (accessToken) {
     try {
       const graphUrl = `https://graph.facebook.com/v19.0/me?fields=business_discovery.username(${encodeURIComponent(cleanHandle)}){username,biography,id}&access_token=${accessToken}`;
@@ -333,7 +286,7 @@ async function verifyInstagram(handle, code, accessToken = process.env.INSTAGRAM
         const cleanBio = bioRetrieved.replace(/\s+/g, ' ').trim();
         const normBio = cleanBio.replace(/[^A-Z0-9]/g, '').toUpperCase();
 
-        if (cleanBio.toUpperCase().includes(cleanCode) || normBio.includes(normCode)) {
+        if (cleanBio.toUpperCase().includes(cleanCode) || (normCode.length >= 6 && normBio.includes(normCode))) {
           return {
             found: true,
             status: 'verified',
@@ -347,7 +300,7 @@ async function verifyInstagram(handle, code, accessToken = process.env.INSTAGRAM
             status: 'code_not_found',
             errorCode: 'CODE_NOT_FOUND',
             accountId: igId,
-            message: `Verification code ${cleanCode} was not found in Instagram bio for @${cleanHandle}. Found bio: "${cleanBio.substring(0, 60)}..."`,
+            message: `Verification code ${cleanCode} was NOT found in Instagram bio for @${cleanHandle}. Found bio: "${cleanBio.substring(0, 60)}..."`,
             apiUsed: 'Meta Graph API v19.0'
           };
         }
@@ -367,40 +320,20 @@ async function verifyInstagram(handle, code, accessToken = process.env.INSTAGRAM
         };
       }
     } catch (e) {
-      console.warn('Instagram Graph API error:', e.message);
+      console.warn('[Verify] Instagram Graph API error:', e.message);
     }
   }
 
-  // 3. PERSISTENT ACTIVE CHALLENGE VERIFICATION:
-  // Match against persistent active challenge
-  const storedChall = challenges.get(`instagram:${cleanHandle}`);
-  if (storedChall) {
-    const storedNorm = storedChall.code.replace(/[^A-Z0-9]/g, '').toUpperCase();
-    if (storedNorm === normCode || storedChall.code === cleanCode) {
-      return {
-        found: true,
-        status: 'verified',
-        accountId: `IG_${cleanHandle}`,
-        snippet: cleanCode,
-        message: `Verified! Code ${cleanCode} confirmed for @${cleanHandle}.`,
-        apiUsed: 'Official Verification Challenge Matcher'
-      };
-    } else {
-      return {
-        found: false,
-        status: 'code_not_found',
-        errorCode: 'CODE_NOT_FOUND',
-        message: `Verification code mismatch for @${cleanHandle}. Expected: ${storedChall.code}, Received: ${cleanCode}. Please make sure your bio contains the exact assigned code.`
-      };
-    }
-  }
+  // 2. STRICT FAIL-CLOSED RULE:
+  // An Instagram account MUST NOT be marked verified unless verified via Meta API or Meta OAuth!
+  // Never compare challenge code against itself!
+  console.log(`[Verify] Bio code verification failed for @${cleanHandle}: Code was NOT verified in bio.`);
 
-  // 4. Default unsupported scraping notice
   return {
     found: false,
-    status: 'oauth_required',
-    errorCode: 'META_OAUTH_REQUIRED',
-    message: `Meta does not allow unauthenticated public bio scraping. Please use 'Connect with Instagram (Meta OAuth)' to verify @${cleanHandle} securely.`
+    status: 'code_not_found',
+    errorCode: 'CODE_NOT_FOUND',
+    message: `Verification code ${cleanCode} was not found in Instagram bio for @${cleanHandle}. Please make sure you added the code to your Instagram bio and saved your profile, or connect directly via official Meta OAuth.`
   };
 }
 
@@ -654,8 +587,9 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // Identity Match Verification Check
-    if (challenge && targetHandle && authenticatedUsername.toLowerCase() !== targetHandle.toLowerCase()) {
+    // Identity Match Verification Check:
+    // Does the authenticated Meta Instagram account match the handle registered in Wovzo challenge?
+    if (challenge && challenge.handle && authenticatedUsername.toLowerCase() !== challenge.handle.toLowerCase()) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.writeHead(400);
       res.end(`<!DOCTYPE html>
@@ -664,8 +598,8 @@ const server = http.createServer(async (req, res) => {
 <body>
   <div class="box">
     <h2 style="color:#EF4444;margin-bottom:12px;">Account Mismatch</h2>
-    <p style="font-size:14px;color:#64748B;line-height:1.5;">You authorized with Instagram account <strong>@${authenticatedUsername}</strong>, but Wovzo expected <strong>@${targetHandle}</strong>.</p>
-    <p style="font-size:13px;color:#94A3B8;margin-top:16px;">Please close this window and authorize with the correct Instagram account.</p>
+    <p style="font-size:14px;color:#64748B;line-height:1.5;">You authorized with Instagram account <strong>@${authenticatedUsername}</strong>, but Wovzo challenge was initiated for <strong>@${challenge.handle}</strong>.</p>
+    <p style="font-size:13px;color:#94A3B8;margin-top:16px;">Please close this window and authorize with the correct Instagram account (@${challenge.handle}).</p>
     <button onclick="window.close()" style="margin-top:20px;padding:10px 20px;background:#0095F6;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Close Window</button>
   </div>
 </body>
