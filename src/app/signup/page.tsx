@@ -1,99 +1,199 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Mail, Lock, User, Megaphone, Users, ShieldCheck, Camera, Video, Building2, Eye, EyeOff } from "lucide-react";
+import { 
+  ArrowRight, 
+  Mail, 
+  Lock, 
+  User, 
+  Building2, 
+  Eye, 
+  EyeOff, 
+  Copy, 
+  Check, 
+  ExternalLink, 
+  BadgeCheck, 
+  AlertCircle, 
+  Sparkles, 
+  RefreshCw, 
+  CheckCircle2, 
+  Clock, 
+  ShieldCheck 
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { 
+  createSocialVerificationChallenge, 
+  verifySocialOwnership, 
+  validateRegistrationChallenge,
+  VerificationChallenge 
+} from "@/lib/verifyBio";
 
 export default function Signup() {
   const router = useRouter();
-  const [role, setRole] = useState("influencer");
+
+  // Wizard Step: 1 = Choose Platform & Handle, 2 = Verify Ownership in Bio, 3 = Account Details
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Form State
+  const [role, setRole] = useState<"influencer" | "brand">("influencer");
+  const [selectedPlatform, setSelectedPlatform] = useState<"instagram" | "youtube">("instagram");
+  const [handle, setHandle] = useState("");
   const [name, setName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [instagram, setInstagram] = useState("");
-  const [youtube, setYoutube] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  // Verification State
+  const [challenge, setChallenge] = useState<VerificationChallenge | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [verifiedHandle, setVerifiedHandle] = useState("");
+  const [verifiedPlatformAccountId, setVerifiedPlatformAccountId] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes in seconds
+
+  // Final Submit State
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Timer countdown for challenge
+  useEffect(() => {
+    if (step === 2 && timeLeft > 0 && !isVerified) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [step, timeLeft, isVerified]);
+
+  // Format MM:SS
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${mins}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Step 1 -> Step 2: Generate Verification Challenge
+  const handleStartVerification = async (e: React.FormEvent) => {
     e.preventDefault();
+    setVerifyError(null);
+    const cleanHandle = handle.trim().replace(/^@+/, '');
+
+    if (!cleanHandle) {
+      setVerifyError(`Please enter your valid ${selectedPlatform === 'instagram' ? 'Instagram username' : 'YouTube channel handle'}.`);
+      return;
+    }
+
+    setVerifying(true);
+    const res = await createSocialVerificationChallenge(
+      selectedPlatform,
+      cleanHandle,
+      role === 'brand' ? 'brand' : 'creator'
+    );
+    setVerifying(false);
+
+    if (res.success && res.challenge) {
+      setChallenge(res.challenge);
+      setTimeLeft(1800);
+      setStep(2);
+    } else {
+      setVerifyError(res.error || 'Failed to initialize verification challenge. Please try again.');
+    }
+  };
+
+  // Step 2: Check Bio Verification
+  const handleVerifyNow = async () => {
+    if (!challenge) return;
+    setVerifying(true);
+    setVerifyError(null);
+
+    const res = await verifySocialOwnership(
+      challenge.challengeId,
+      challenge.platform,
+      challenge.handle,
+      challenge.verificationCode
+    );
+    setVerifying(false);
+
+    if (res.verified) {
+      setIsVerified(true);
+      setVerifiedHandle(challenge.handle);
+      setVerifiedPlatformAccountId(res.platformAccountId || `${challenge.platform}_${challenge.handle}`);
+      setStep(3);
+    } else {
+      setVerifyError(
+        res.message || 
+        `Verification code ${challenge.verificationCode} was not found in your ${challenge.platform === 'instagram' ? 'Instagram Bio' : 'YouTube Channel Description'}. Please make sure you saved your profile and try again.`
+      );
+    }
+  };
+
+  // Copy code to clipboard
+  const handleCopyCode = () => {
+    if (!challenge) return;
+    navigator.clipboard.writeText(challenge.verificationCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Step 3: Final Account Registration (MANDATORY SERVER CHECK)
+  const handleFinalSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    // CRITICAL SECURITY ENFORCEMENT: Block if not verified
+    if (!isVerified || !challenge) {
+      setSubmitError("Mandatory social media ownership verification required. Please verify your Instagram or YouTube account first.");
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
-    setError(null);
 
     try {
       const cleanEmail = email.toLowerCase().trim();
-      const normRole = role === "influencer" ? "influencer" : "brand";
-      const cleanIg = instagram.trim().replace(/^@/, '').toLowerCase();
-      const cleanYt = youtube.trim();
-      const cleanBrand = brandName.trim().toLowerCase();
-      const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
+      const normRole = role === "brand" ? "brand" : "influencer";
+      const cleanIg = selectedPlatform === "instagram" ? verifiedHandle : "";
+      const cleanYt = selectedPlatform === "youtube" ? verifiedHandle : "";
       const displayName = normRole === "brand" ? (brandName.trim() || name.trim() || "Brand") : (name.trim() || "Creator");
 
-      // 1. Check if email already registered locally
-      const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
-      if (reg[cleanEmail]) {
-        setError("An account with this email address already exists. Please Sign In instead.");
+      // 1. Server-side challenge validation check
+      const validation = await validateRegistrationChallenge(
+        challenge.challengeId,
+        challenge.platform,
+        verifiedHandle,
+        normRole === 'brand' ? 'brand' : 'creator'
+      );
+
+      if (!validation.allowed) {
+        setSubmitError(validation.error || "Verification challenge invalid or expired. Please re-verify your social profile.");
         setLoading(false);
         return;
       }
 
-      // 2. Prevent same creator from creating multiple accounts with same Instagram handle
-      if (normRole === "influencer" && cleanIg) {
-        const duplicateIg = Object.values(reg).find((acc: any) => 
-          acc.instagram && acc.instagram.toLowerCase().replace('@', '') === cleanIg
-        );
-        if (duplicateIg) {
-          setError(`This Instagram handle (@${cleanIg}) is already registered with an existing account. Multiple accounts are not allowed.`);
-          setLoading(false);
-          return;
-        }
-
-        try {
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
-          const { data: existingProfiles }: any = await Promise.race([
-            supabase.from('profiles').select('id, name').ilike('instagram', `%${cleanIg}%`).limit(1),
-            timeoutPromise
-          ]).catch(() => ({ data: null }));
-
-          if (existingProfiles && existingProfiles.length > 0) {
-            setError(`This Instagram handle (@${cleanIg}) is already registered with an existing account. Multiple accounts are not allowed.`);
-            setLoading(false);
-            return;
-          }
-        } catch (_) {}
+      // 2. Prevent duplicate social account linking locally
+      const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
+      if (reg[cleanEmail]) {
+        setSubmitError("An account with this email address already exists. Please Sign In instead.");
+        setLoading(false);
+        return;
       }
 
-      // 3. Prevent duplicate brand accounts
-      if (normRole === "brand" && cleanBrand.length >= 3) {
-        const duplicateBrand = Object.values(reg).find((acc: any) => 
-          acc.brand_name && acc.brand_name.toLowerCase() === cleanBrand
-        );
-        if (duplicateBrand) {
-          setError(`A brand named "${brandName.trim()}" is already registered. Duplicate brand accounts are not allowed.`);
-          setLoading(false);
-          return;
-        }
-
-        try {
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject('timeout'), 1500));
-          const { data: existingBrands }: any = await Promise.race([
-            supabase.from('profiles').select('id, name').eq('role', 'brand').ilike('name', cleanBrand).limit(1),
-            timeoutPromise
-          ]).catch(() => ({ data: null }));
-
-          if (existingBrands && existingBrands.length > 0) {
-            setError(`A brand named "${brandName.trim()}" is already registered. Duplicate brand accounts are not allowed.`);
-            setLoading(false);
-            return;
-          }
-        } catch (_) {}
+      const duplicateHandle = Object.values(reg).find((acc: any) => 
+        (selectedPlatform === 'instagram' && acc.instagram && acc.instagram.toLowerCase().replace('@', '') === verifiedHandle.toLowerCase()) ||
+        (selectedPlatform === 'youtube' && acc.youtube && acc.youtube.toLowerCase() === verifiedHandle.toLowerCase())
+      );
+      if (duplicateHandle) {
+        setSubmitError(`The ${selectedPlatform} account (@${verifiedHandle}) is already linked to another Wovzo account.`);
+        setLoading(false);
+        return;
       }
 
-      // 4. Sign up the user in Supabase Auth and pass custom data
+      // 3. Register user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -105,54 +205,49 @@ export default function Signup() {
             role: normRole,
             instagram: cleanIg ? `@${cleanIg}` : "",
             youtube: cleanYt,
-            verification_code: verificationCode,
-            is_verified: false,
-            instagram_verified: false,
-            youtube_verified: false,
+            is_verified: true,
+            verified_handle: verifiedHandle,
+            verified_platform: selectedPlatform,
+            platform_account_id: verifiedPlatformAccountId,
+            verification_challenge_id: challenge.challengeId,
+            verification_code: challenge.verificationCode,
+            instagram_verified: selectedPlatform === "instagram",
+            youtube_verified: selectedPlatform === "youtube",
           }
         }
       });
 
       if (authError) throw authError;
 
-      // Supabase returns empty identities when user already exists with this email!
+      // Duplicate email identity check
       if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
-        setError("An account with this email address already exists. Please Sign In instead.");
+        setSubmitError("An account with this email address already exists. Please Sign In instead.");
         setLoading(false);
         return;
       }
 
-      // Save to local accounts registry only on verified success
-      try {
-        localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
-        reg[cleanEmail] = {
-          role: normRole,
-          password: password,
-          name: displayName,
-          brand_name: normRole === "brand" ? brandName.trim() : "",
-          contact_name: name.trim(),
-          instagram: cleanIg ? `@${cleanIg}` : "",
-          youtube: cleanYt,
-          verification_code: verificationCode,
-          is_verified: false,
-        };
-        localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
-        localStorage.setItem("wovzo_demo_user", JSON.stringify({
-          name: displayName,
-          brand_name: normRole === "brand" ? brandName.trim() : "",
-          contact_name: name.trim(),
-          email: cleanEmail,
-          role: normRole,
-          instagram: cleanIg ? `@${cleanIg}` : "",
-          youtube: cleanYt,
-          verification_code: verificationCode,
-          is_verified: false,
-        }));
-        localStorage.removeItem("wovzo_applied_campaigns");
-        localStorage.removeItem("wovzo_submitted_applications");
-      } catch (_) {}
+      // 4. Save to local verified accounts registry
+      reg[cleanEmail] = {
+        role: normRole,
+        password: password,
+        name: displayName,
+        brand_name: normRole === "brand" ? brandName.trim() : "",
+        contact_name: name.trim(),
+        instagram: cleanIg ? `@${cleanIg}` : "",
+        youtube: cleanYt,
+        is_verified: true,
+        verified_handle: verifiedHandle,
+        verified_platform: selectedPlatform,
+        platform_account_id: verifiedPlatformAccountId,
+        verification_code: challenge.verificationCode,
+      };
+      localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
+      localStorage.setItem("wovzo_demo_user", JSON.stringify({
+        email: cleanEmail,
+        ...reg[cleanEmail]
+      }));
 
-      // Ensure profile row exists
+      // 5. Ensure profile row exists with verified flags
       if (authData.user) {
         try {
           await supabase.from("profiles").upsert({
@@ -161,307 +256,424 @@ export default function Signup() {
             role: normRole,
             instagram: cleanIg ? `@${cleanIg}` : "",
             youtube: cleanYt,
-            verification_code: verificationCode,
-            is_verified: false,
+            is_verified: true,
+            verified_handle: verifiedHandle,
+            verified_platform: selectedPlatform,
+            verification_code: challenge.verificationCode,
+            instagram_verified: selectedPlatform === "instagram",
+            youtube_verified: selectedPlatform === "youtube",
           });
         } catch (_) {}
       }
 
-      // Redirect to appropriate dashboard based on role
+      // Redirect to respective dashboard
       if (normRole === "influencer") {
         router.push("/dashboard/creator");
       } else {
         router.push("/dashboard/brand");
       }
     } catch (err: any) {
-      console.warn("Signup error, checking fallback:", err);
-      const errLower = (err.message || "").toLowerCase();
-
-      // Check if error is about already registered / duplicate account
-      if (errLower.includes("already registered") || 
-          errLower.includes("already exists") || 
-          errLower.includes("user_already_exists") ||
-          errLower.includes("unique constraint")) {
-        setError("An account with this email address already exists. Please Sign In instead.");
-        setLoading(false);
-        return;
-      }
-
-      const isNetworkOrFetch = 
-        err.message?.toLowerCase().includes("fetch") ||
-        err.message?.toLowerCase().includes("network") ||
-        err.message?.toLowerCase().includes("failed to fetch") ||
-        err.name === "TypeError";
-
-      if (isNetworkOrFetch) {
-        const cleanEmail = email.toLowerCase().trim();
-        const normRole = role === "influencer" ? "influencer" : "brand";
-        const cleanIg = instagram.trim().replace(/^@/, '').toLowerCase();
-        const cleanYt = youtube.trim();
-        const verificationCode = `WOVZO-${Math.floor(1000 + Math.random() * 9000)}`;
-        const displayName = normRole === "brand" ? (brandName.trim() || name.trim() || "Brand") : (name.trim() || "Creator");
-        
-        const reg = JSON.parse(localStorage.getItem("wovzo_accounts_registry") || "{}");
-        if (reg[cleanEmail]) {
-          setError("An account with this email address already exists. Please Sign In instead.");
-          setLoading(false);
-          return;
-        }
-
-        try {
-          localStorage.setItem(`wovzo_user_role_${cleanEmail}`, normRole);
-          reg[cleanEmail] = {
-            role: normRole,
-            password: password,
-            name: displayName,
-            brand_name: normRole === "brand" ? brandName.trim() : "",
-            contact_name: name.trim(),
-            instagram: cleanIg ? `@${cleanIg}` : "",
-            youtube: cleanYt,
-            verification_code: verificationCode,
-            is_verified: false,
-          };
-          localStorage.setItem("wovzo_accounts_registry", JSON.stringify(reg));
-          localStorage.setItem("wovzo_demo_user", JSON.stringify({
-            name: displayName,
-            brand_name: normRole === "brand" ? brandName.trim() : "",
-            contact_name: name.trim(),
-            email: cleanEmail,
-            role: normRole,
-            instagram: cleanIg ? `@${cleanIg}` : "",
-            youtube: cleanYt,
-            verification_code: verificationCode,
-            is_verified: false,
-          }));
-          localStorage.removeItem("wovzo_applied_campaigns");
-          localStorage.removeItem("wovzo_submitted_applications");
-        } catch (_) {}
-        router.push(normRole === "influencer" ? "/dashboard/creator" : "/dashboard/brand");
-        return;
-      }
-      setError(err.message || "An error occurred during signup.");
+      console.warn("Registration error:", err);
+      setSubmitError(err.message || "Failed to create account. Please check your details and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-[family-name:var(--font-geist-sans)]">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link href="/" className="flex justify-center items-center mb-2">
-          <img src="/collab/logo.png" alt="Wovzo" className="h-10 object-contain" />
-        </Link>
-        <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link href="/login" className="font-semibold text-[#FF6A00] hover:text-[#E55A00] transition">
-            Sign in
-          </Link>
-        </p>
+        {/* Brand App Icon & Header */}
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#0F172A] p-2 flex items-center justify-center shadow-lg shadow-orange-500/20 border border-orange-500/30">
+            <img 
+              src="/collab/logo.png" 
+              alt="Wovzo Collab" 
+              className="w-12 h-12 object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }} 
+            />
+          </div>
+          <h2 className="mt-4 text-center text-2xl font-black tracking-wider text-gray-900">
+            WOVZO <span className="text-[#FF6A00]">COLLAB</span>
+          </h2>
+          <div className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-[#FF6A00] text-xs font-bold">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Mandatory Social Media Verification</span>
+          </div>
+        </div>
+
+        {/* 3-Step Progress Indicators */}
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <div className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full transition ${
+            step === 1 ? 'bg-[#FF6A00] text-white shadow-sm' : isVerified || step > 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
+          }`}>
+            <span>1. Platform</span>
+          </div>
+          <div className="w-4 h-0.5 bg-gray-200"></div>
+          <div className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full transition ${
+            step === 2 ? 'bg-[#FF6A00] text-white shadow-sm' : isVerified || step > 2 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'
+          }`}>
+            <span>2. Bio Verify</span>
+          </div>
+          <div className="w-4 h-0.5 bg-gray-200"></div>
+          <div className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full transition ${
+            step === 3 ? 'bg-[#FF6A00] text-white shadow-sm' : 'bg-gray-100 text-gray-400'
+          }`}>
+            <span>3. Account</span>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-orange-500/5 sm:rounded-2xl sm:px-10 border border-gray-100">
-          <form className="space-y-6" onSubmit={handleSignup}>
-            
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
-                {error}
-              </div>
-            )}
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
+        <div className="bg-white py-8 px-6 shadow-xl rounded-2xl border border-gray-100 sm:px-10">
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
-              <div className="grid grid-cols-2 gap-4">
-                <label className="relative cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center gap-3 hover:bg-gray-50 has-[:checked]:border-[#FF6A00] has-[:checked]:bg-orange-50 has-[:checked]:ring-1 has-[:checked]:ring-[#FF6A00] transition">
-                  <input type="radio" name="role" value="influencer" checked={role === "influencer"} onChange={() => setRole("influencer")} className="sr-only" />
-                  <Users className="w-5 h-5 text-gray-600" />
-                  <span className="font-medium text-gray-900">Creator</span>
-                </label>
-                <label className="relative cursor-pointer rounded-xl border border-gray-300 bg-white px-4 py-3 shadow-sm flex items-center gap-3 hover:bg-gray-50 has-[:checked]:border-[#FF6A00] has-[:checked]:bg-orange-50 has-[:checked]:ring-1 has-[:checked]:ring-[#FF6A00] transition">
-                  <input type="radio" name="role" value="brand" checked={role === "brand"} onChange={() => setRole("brand")} className="sr-only" />
-                  <Megaphone className="w-5 h-5 text-gray-600" />
-                  <span className="font-medium text-gray-900">Brand</span>
-                </label>
-              </div>
-            </div>
-
-            {role === "influencer" ? (
+          {/* ================= STEP 1: SELECT PLATFORM & HANDLE ================= */}
+          {step === 1 && (
+            <form onSubmit={handleStartVerification} className="space-y-5 animate-in fade-in">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Full Name
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                  Account Type
                 </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
-                    placeholder="e.g. Asraf Ali"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole("influencer")}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                      role === "influencer"
+                        ? "bg-orange-50 border-[#FF6A00] text-[#FF6A00] shadow-sm"
+                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Creator</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRole("brand")}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                      role === "brand"
+                        ? "bg-blue-50 border-blue-600 text-blue-600 shadow-sm"
+                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>Brand</span>
+                  </button>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                  Verify Ownership With
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlatform("instagram")}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                      selectedPlatform === "instagram"
+                        ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-transparent shadow-sm"
+                        : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <span>Instagram</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlatform("youtube")}
+                    className={`py-3 px-4 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                      selectedPlatform === "youtube"
+                        ? "bg-red-600 text-white border-transparent shadow-sm"
+                        : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <span>YouTube</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  {selectedPlatform === "instagram" ? "Instagram Username" : "YouTube Channel Handle"}
+                </label>
+                <div className="relative rounded-xl shadow-sm">
+                  <input
+                    type="text"
+                    required
+                    value={handle}
+                    onChange={(e) => setHandle(e.target.value)}
+                    placeholder={selectedPlatform === "instagram" ? "@username" : "@channel"}
+                    className="block w-full rounded-xl border border-gray-300 py-3 px-4 text-sm focus:border-[#FF6A00] focus:ring-[#FF6A00] bg-[#F8FAFC]"
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] text-gray-500">
+                  {role === 'brand' 
+                    ? "Enter your official company Instagram or YouTube channel handle." 
+                    : "Enter your public creator Instagram or YouTube channel handle."}
+                </p>
+              </div>
+
+              {verifyError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{verifyError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={verifying}
+                className="w-full py-3.5 px-4 rounded-xl text-sm font-bold text-white bg-[#FF6A00] hover:bg-[#E55A00] shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {verifying ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Generating Verification Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Generate Verification Code</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* ================= STEP 2: VERIFICATION CHALLENGE IN BIO ================= */}
+          {step === 2 && challenge && (
+            <div className="space-y-5 animate-in fade-in">
+              <div className="text-center">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                  <Clock className="w-3 h-3" />
+                  <span>Code expires in: {formatTime(timeLeft)}</span>
+                </span>
+                <h3 className="mt-2 text-lg font-bold text-gray-900">
+                  Add Code to Your {challenge.platform === 'instagram' ? 'Instagram Bio' : 'YouTube Description'}
+                </h3>
+                <p className="mt-1 text-xs text-gray-600">
+                  Verifying account ownership for <strong>@{challenge.handle}</strong>
+                </p>
+              </div>
+
+              {/* Code Box */}
+              <div className="p-4 bg-orange-50/70 border-2 border-dashed border-[#FF6A00]/40 rounded-2xl flex items-center justify-between">
                 <div>
-                  <label htmlFor="brandName" className="block text-sm font-medium text-gray-700">
-                    Brand / Company Name
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Building2 className="h-5 w-5 text-gray-400" />
-                    </div>
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-orange-800">
+                    Your Verification Challenge Code
+                  </span>
+                  <span className="text-lg font-mono font-black text-[#FF6A00] tracking-wider">
+                    {challenge.verificationCode}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className="px-3.5 py-2 bg-[#FF6A00] hover:bg-[#E55A00] text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+                </button>
+              </div>
+
+              {/* Action Buttons: Open Platform */}
+              <div className="flex gap-2">
+                <a
+                  href={
+                    challenge.platform === 'instagram'
+                      ? `https://instagram.com/${challenge.handle}`
+                      : `https://youtube.com/@${challenge.handle}`
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open {challenge.platform === 'instagram' ? 'Instagram' : 'YouTube'}</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  <span>Change Handle</span>
+                </button>
+              </div>
+
+              {/* Clear Instructions */}
+              <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs space-y-1.5 text-gray-700">
+                <p className="font-bold text-gray-900">How to verify:</p>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-gray-600">
+                  <li>Click <strong>Copy Code</strong> above.</li>
+                  <li>Paste it into your {challenge.platform === 'instagram' ? 'Instagram Bio' : 'YouTube Channel Description'}.</li>
+                  <li>Save your profile changes.</li>
+                  <li>Click <strong>Verify Account</strong> below. Once verified, you may remove the code!</li>
+                </ol>
+              </div>
+
+              {verifyError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>{verifyError}</span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleVerifyNow}
+                disabled={verifying}
+                className="w-full py-3.5 px-4 rounded-xl text-sm font-bold text-white bg-[#FF6A00] hover:bg-[#E55A00] shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {verifying ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Scanning {challenge.platform === 'instagram' ? 'Instagram Bio' : 'YouTube Description'}...</span>
+                  </>
+                ) : (
+                  <>
+                    <BadgeCheck className="w-4 h-4" />
+                    <span>Verify Account</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* ================= STEP 3: ACCOUNT REGISTRATION ================= */}
+          {step === 3 && isVerified && (
+            <form onSubmit={handleFinalSignup} className="space-y-4 animate-in fade-in">
+              {/* Verified Badge Banner */}
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="w-5 h-5 text-emerald-600 fill-emerald-600" />
+                  <div>
+                    <span className="block text-xs font-bold text-emerald-900">
+                      Ownership Verified!
+                    </span>
+                    <span className="text-[11px] text-emerald-700">
+                      @{verifiedHandle} on {selectedPlatform}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-200 text-emerald-900 rounded-full uppercase">
+                  Verified
+                </span>
+              </div>
+
+              {role === "brand" ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Brand / Company Name</label>
                     <input
-                      id="brandName"
                       type="text"
                       required
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
-                      className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
-                      placeholder="e.g. FabIndia, boAt Lifestyle"
+                      placeholder="e.g. boAt Lifestyle"
+                      className="block w-full rounded-xl border border-gray-300 py-2.5 px-3.5 text-sm bg-[#F8FAFC]"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">
-                    Your Full Name (Brand Manager / Founder)
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Your Full Name (Manager / Founder)</label>
                     <input
-                      id="contactName"
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
-                      placeholder="e.g. Rahul Sharma"
+                      placeholder="e.g. Aman Gupta"
+                      className="block w-full rounded-xl border border-gray-300 py-2.5 px-3.5 text-sm bg-[#F8FAFC]"
                     />
                   </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Asraf Ali"
+                    className="block w-full rounded-xl border border-gray-300 py-2.5 px-3.5 text-sm bg-[#F8FAFC]"
+                  />
                 </div>
-              </div>
-            )}
+              )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
                 <input
-                  id="email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
-                  placeholder="you@company.com"
+                  placeholder="you@example.com"
+                  className="block w-full rounded-xl border border-gray-300 py-2.5 px-3.5 text-sm bg-[#F8FAFC]"
                 />
               </div>
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-10 px-3 py-2.5 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] sm:text-sm transition"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer focus:outline-none"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            {role === "influencer" && (
-              <div className="p-4 bg-orange-50/70 border border-orange-200/80 rounded-2xl space-y-3.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#FF6A00] uppercase tracking-wider">
-                  <ShieldCheck className="w-4 h-4 text-[#FF6A00]" />
-                  <span>Creator Social Channels (For Verified Badge)</span>
-                </div>
-                <p className="text-[11px] text-gray-600 leading-relaxed">
-                  Enter your handles to link your profile. You will receive a unique <span className="font-semibold text-gray-800">Bio Verification Code</span> (WOVZO-XXXX) to instantly verify ownership and earn the <strong>Verified Blue Badge</strong>!
-                </p>
-
-                <div>
-                  <label htmlFor="instagram" className="block text-xs font-semibold text-gray-700 mb-1">
-                    Instagram Username <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Camera className="h-4 w-4 text-pink-500" />
-                    </div>
-                    <input
-                      id="instagram"
-                      type="text"
-                      required
-                      value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
-                      className="appearance-none block w-full pl-9 px-3 py-2 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] text-xs transition bg-white"
-                      placeholder="@yourhandle (e.g. @asrafgiimi)"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="youtube" className="block text-xs font-semibold text-gray-700 mb-1">
-                    YouTube Channel / Handle (Optional)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Video className="h-4 w-4 text-red-500" />
-                    </div>
-                    <input
-                      id="youtube"
-                      type="text"
-                      value={youtube}
-                      onChange={(e) => setYoutube(e.target.value)}
-                      className="appearance-none block w-full pl-9 px-3 py-2 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FF6A00] focus:border-[#FF6A00] text-xs transition bg-white"
-                      placeholder="@channel or youtube.com/@channel"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="block w-full rounded-xl border border-gray-300 py-2.5 px-3.5 text-sm bg-[#F8FAFC]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
-            )}
 
-            <div>
+              {submitError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md shadow-orange-500/20 text-sm font-semibold text-white bg-[#FF6A00] hover:bg-[#E55A00] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6A00] transition disabled:opacity-50"
+                className="w-full py-3.5 px-4 rounded-xl text-sm font-bold text-white bg-[#FF6A00] hover:bg-[#E55A00] shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
-                {loading ? "Creating Account..." : "Create Account"}
-                {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Creating Verified Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Create Verified Account</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
-            </div>
-          </form>
+            </form>
+          )}
+
+          {/* Footer switch to login */}
+          <div className="mt-6 text-center text-xs text-gray-500 border-t border-gray-100 pt-4">
+            <span>Already have an account? </span>
+            <Link href="/login" className="font-bold text-[#FF6A00] hover:underline">
+              Sign In
+            </Link>
+          </div>
+
         </div>
       </div>
     </div>
