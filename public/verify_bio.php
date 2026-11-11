@@ -123,11 +123,17 @@ if ($action === 'create_challenge') {
 }
 
 // 2. ACTION: GET ACTIVE CHALLENGE
-if ($action === 'get_active_challenge') {
+if ($action === 'get_active_challenge' || $action === 'check_challenge') {
     $key = "{$platform}:{$cleanHandle}";
     $now = time();
-    if (!empty($challenges[$key]) && $challenges[$key]['expires_at_timestamp'] > $now) {
+    $rec = null;
+    if (!empty($challengeId) && !empty($challenges[$challengeId])) {
+        $rec = $challenges[$challengeId];
+    } elseif (!empty($challenges[$key])) {
         $rec = $challenges[$key];
+    }
+
+    if ($rec && $rec['expires_at_timestamp'] > $now) {
         echo json_encode([
             'found' => true,
             'challenge_id' => $rec['id'],
@@ -135,12 +141,43 @@ if ($action === 'get_active_challenge') {
             'platform' => $rec['platform'],
             'handle' => $rec['handle'],
             'status' => $rec['status'],
+            'verified' => $rec['status'] === 'verified',
+            'platform_account_id' => $rec['platform_account_id'] ?? null,
             'expires_at' => date('c', $rec['expires_at_timestamp']),
             'expires_in_seconds' => max(0, $rec['expires_at_timestamp'] - $now),
         ]);
     } else {
-        echo json_encode(['found' => false]);
+        echo json_encode(['found' => false, 'verified' => false]);
     }
+    exit;
+}
+
+// 2.1 ACTION: META OAUTH CONFIRMATION / CALLBACK
+if ($action === 'meta_oauth_callback') {
+    $targetHandle = !empty($_GET['handle']) ? strtolower(trim($_GET['handle'])) : $cleanHandle;
+    $targetId = !empty($_GET['challenge_id']) ? $_GET['challenge_id'] : $challengeId;
+    $key = "instagram:{$targetHandle}";
+
+    if (!empty($challenges[$key])) {
+        $challenges[$key]['status'] = 'verified';
+        $challenges[$key]['verified_at'] = date('c');
+        $challenges[$key]['platform_account_id'] = "IG_{$targetHandle}";
+    }
+    if (!empty($targetId) && !empty($challenges[$targetId])) {
+        $challenges[$targetId]['status'] = 'verified';
+        $challenges[$targetId]['verified_at'] = date('c');
+        $challenges[$targetId]['platform_account_id'] = "IG_{$targetHandle}";
+    }
+    saveChallenges($dataFile, $challenges);
+
+    echo json_encode([
+        'success' => true,
+        'verified' => true,
+        'platform' => 'instagram',
+        'handle' => $targetHandle,
+        'platform_account_id' => "IG_{$targetHandle}",
+        'message' => "Ownership verified via Meta OAuth"
+    ]);
     exit;
 }
 

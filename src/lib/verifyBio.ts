@@ -314,3 +314,12 @@ export async function verifySocialBioOnline(
     accountId: res.platformAccountId,
   };
 }
+
+/**
+ * Generate official Meta OAuth start URL for Instagram verification
+ */
+export function getMetaOAuthStartUrl(challengeId: string, handle: string, accountType: string = 'creator'): string {
+  const cleanHandle = handle.trim().replace(/^@+/, '').toLowerCase();
+  const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
+  return `http://${host}:3001/auth/instagram/start?challenge_id=${encodeURIComponent(challengeId)}&handle=${encodeURIComponent(cleanHandle)}&account_type=${encodeURIComponent(accountType)}`;
+}

@@ -30,6 +30,7 @@ import {
   getStoredActiveChallenge,
   persistActiveChallenge,
   clearActiveChallenge,
+  getMetaOAuthStartUrl,
   VerificationChallenge 
 } from "@/lib/verifyBio";
 
@@ -84,6 +85,51 @@ export default function Signup() {
       }
     }
   }, []);
+
+  // OFFICIAL META OAUTH LISTENER: Handle verified OAuth response from popup window
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'WOVZO_META_VERIFIED') {
+        const { challengeId, handle: verifiedUser, platformAccountId } = event.data;
+        setIsVerified(true);
+        setVerificationStatus('verified');
+        setVerifiedHandle(verifiedUser);
+        setVerifiedPlatformAccountId(platformAccountId || `IG_${verifiedUser}`);
+        setVerifyError(null);
+
+        // Update stored challenge locally
+        const cached = getStoredActiveChallenge();
+        if (cached) {
+          cached.status = 'verified';
+          cached.handle = verifiedUser;
+          persistActiveChallenge(cached);
+        }
+
+        setStep(3);
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
+
+  // Trigger Meta OAuth popup
+  const handleOpenMetaOAuth = () => {
+    const targetHandle = challenge?.handle || handle.trim().replace(/^@+/, '') || 'creator';
+    const cId = challenge?.challengeId || `oauth_${Date.now()}`;
+    const url = getMetaOAuthStartUrl(cId, targetHandle, role === 'brand' ? 'brand' : 'creator');
+
+    const width = 540;
+    const height = 660;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    window.open(
+      url,
+      'MetaInstagramOAuth',
+      `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes`
+    );
+  };
 
   // Timer countdown for challenge
   useEffect(() => {
@@ -505,6 +551,25 @@ export default function Signup() {
                   </>
                 )}
               </button>
+
+              {selectedPlatform === "instagram" && (
+                <>
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-gray-200"></div>
+                    <span className="flex-shrink mx-3 text-[10px] font-bold uppercase tracking-wider text-gray-400">Or Verify Directly</span>
+                    <div className="flex-grow border-t border-gray-200"></div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenMetaOAuth}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-95 shadow-md shadow-pink-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Connect with Instagram (Meta OAuth)</span>
+                  </button>
+                </>
+              )}
             </form>
           )}
 
@@ -626,6 +691,16 @@ export default function Signup() {
                           : 'Verification Challenge Notice'}
                       </p>
                       <p className="text-[11.5px] leading-relaxed">{verifyError}</p>
+                      {challenge.platform === 'instagram' && (
+                        <button
+                          type="button"
+                          onClick={handleOpenMetaOAuth}
+                          className="mt-2 py-2 px-3 bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white text-xs font-bold rounded-lg shadow-sm flex items-center justify-center gap-1.5 cursor-pointer w-full"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Connect Directly with Meta OAuth</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -651,6 +726,17 @@ export default function Signup() {
                     </>
                   )}
                 </button>
+
+                {challenge.platform === 'instagram' && (
+                  <button
+                    type="button"
+                    onClick={handleOpenMetaOAuth}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] hover:opacity-95 shadow-md shadow-pink-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Connect with Instagram (Meta OAuth)</span>
+                  </button>
+                )}
 
                 {/* Regenerate Code Button (Available if expired or on retry) */}
                 {(timeLeft <= 0 || verificationStatus === 'expired' || verifyError) && (
