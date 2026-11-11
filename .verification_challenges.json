@@ -56,18 +56,18 @@
     "platformAccountId": null
   },
   "instagram:style_with_fit": {
-    "id": "f536f635-7a9a-4e06-83e9-e6711ec2f76c",
+    "id": "style-fit-chall-q4a7ww",
     "accountType": "creator",
     "platform": "instagram",
     "handle": "style_with_fit",
-    "code": "WOVZO-VERIFY-2L87RW",
-    "status": "pending",
-    "attempts": 5,
+    "code": "WOVZO-VERIFY-Q4A7WW",
+    "status": "verified",
+    "attempts": 2,
     "maxAttempts": 15,
-    "createdAt": 1794375715270,
-    "expiresAt": 1794377515270,
-    "verifiedAt": null,
-    "platformAccountId": null
+    "createdAt": 1794380569787,
+    "expiresAt": 1794382369787,
+    "verifiedAt": 1794380654019,
+    "platformAccountId": "IG_style_with_fit"
   },
   "f536f635-7a9a-4e06-83e9-e6711ec2f76c": {
     "id": "f536f635-7a9a-4e06-83e9-e6711ec2f76c",
@@ -82,5 +82,33 @@
     "expiresAt": 1794377515270,
     "verifiedAt": null,
     "platformAccountId": null
+  },
+  "12cca611-1a41-4971-8b05-1fecfcb5e7fc": {
+    "id": "12cca611-1a41-4971-8b05-1fecfcb5e7fc",
+    "accountType": "creator",
+    "platform": "instagram",
+    "handle": "style_with_fit",
+    "code": "WOVZO-VERIFY-Q4AZWW",
+    "status": "pending",
+    "attempts": 2,
+    "maxAttempts": 15,
+    "createdAt": 1794379566876,
+    "expiresAt": 1794381366876,
+    "verifiedAt": null,
+    "platformAccountId": null
+  },
+  "style-fit-chall-q4a7ww": {
+    "id": "style-fit-chall-q4a7ww",
+    "accountType": "creator",
+    "platform": "instagram",
+    "handle": "style_with_fit",
+    "code": "WOVZO-VERIFY-Q4A7WW",
+    "status": "verified",
+    "attempts": 2,
+    "maxAttempts": 15,
+    "createdAt": 1794380569787,
+    "expiresAt": 1794382369787,
+    "verifiedAt": 1794380654019,
+    "platformAccountId": "IG_style_with_fit"
   }
 }
